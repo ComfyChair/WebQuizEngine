@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -25,12 +26,11 @@ class RegistrationControllerMockMvcTest {
         )
         val requestAsJson = Json.encodeToString(request)
 
-        val requestBuilder = post("/api/register")
+        mockMvc.perform(post("/api/register")
             .contentType(MediaType.APPLICATION_JSON)
             .content(requestAsJson)
-
-        mockMvc.perform(requestBuilder)
-            .andExpect(status().isOk)
+            .with(csrf())
+        ).andExpect(status().isOk)
     }
 
     @Test
@@ -40,12 +40,12 @@ class RegistrationControllerMockMvcTest {
                 "\"password\": \"password\""+
                 "}"
 
-        val requestBuilder = post("/api/register")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(requestAsJson)
-
-        mockMvc.perform(requestBuilder)
-            .andExpect(status().isBadRequest)
+        mockMvc.perform(
+            post("/api/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestAsJson)
+                .with(csrf())
+        ).andExpect(status().isBadRequest)
     }
 
     @Test
@@ -55,12 +55,11 @@ class RegistrationControllerMockMvcTest {
                 "\"password\": \"pass\""+
                 "\n}"
 
-        val requestBuilder = post("/api/register")
+        mockMvc.perform(post("/api/register")
             .contentType(MediaType.APPLICATION_JSON)
             .content(requestAsJson)
-
-        mockMvc.perform(requestBuilder)
-            .andExpect(status().isBadRequest)
+            .with(csrf())
+            ).andExpect(status().isBadRequest)
     }
 
     @Test
@@ -73,10 +72,12 @@ class RegistrationControllerMockMvcTest {
         val requestBuilder = post("/api/register")
             .contentType(MediaType.APPLICATION_JSON)
             .content(requestAsJson)
+            .with(csrf())
 
+        // First request is valid
         mockMvc.perform(requestBuilder)
             .andExpect(status().isOk)
-
+        // Second request with same email is declined
         mockMvc.perform(requestBuilder)
             .andExpect(status().isBadRequest)
     }

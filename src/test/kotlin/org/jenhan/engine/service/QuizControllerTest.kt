@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
-import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.context.annotation.Import
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
@@ -22,6 +21,8 @@ import org.springframework.http.MediaType
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
@@ -32,36 +33,33 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 internal class QuizControllerTest {
     @field:Autowired
     private lateinit var mockMvc: MockMvc
-    @field:MockBean
+    @field:MockitoBean
     private lateinit var userRepository: UserRepository
-    @field:MockBean
+    @field:MockitoBean
     private lateinit var userDetailService: UserDetailsServiceImpl
-    @field:MockBean
+    @field:MockitoBean
     private lateinit var webQuizService: WebQuizService
 
     private val quiz1CreateDTO = QuizCreationObject(QUIZ1_TITLE, QUIZ1_TEXT,QUIZ1_OPTIONS, 2)
     private val quiz1 = QuizDTO(0,QUIZ1_TITLE,QUIZ1_TEXT,QUIZ1_OPTIONS)
-    private val quiz2CreateDTO = QuizCreationObject(QUIZ2_TITLE, QUIZ2_TEXT,QUIZ2_OPTIONS,1)
     private val quiz2 = QuizDTO(1,QUIZ2_TITLE,QUIZ2_TEXT,QUIZ2_OPTIONS)
 
     private val testUser = QuizUser(0,TEST_USER_NAME,TEST_USER_PASSWORD)
 
     @Test
     fun `GET all quizzes denied for unauthorized`() {
-        val requestBuilder = get("/api/quizzes")
-
-        mockMvc.perform(requestBuilder)
+        mockMvc.perform(get("/api/quizzes"))
             .andExpect(status().isUnauthorized)
     }
 
     @Test
     @WithMockUser(username = "someUser", roles = ["USER"])
     fun `GET all quizzes accepted with MockUser`() {
-        val requestBuilder = get("/api/quizzes?page=0")
         `when`(webQuizService.getQuizzes(0))
             .thenReturn(PageImpl(listOf(quiz1, quiz2), PageRequest.of(0, 10), 2))
 
-        mockMvc.perform(requestBuilder)
+        mockMvc.perform(
+            get("/api/quizzes?page=0"))
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.content").isArray)
@@ -77,20 +75,19 @@ internal class QuizControllerTest {
 
     @Test
     fun `GET quiz by id denied without authentication`() {
-        val requestBuilder = get("/api/quizzes/0")
         `when`(webQuizService.getQuiz(0)).thenReturn(quiz1)
 
-        mockMvc.perform(requestBuilder)
+        mockMvc.perform(get("/api/quizzes/0"))
             .andExpect(status().isUnauthorized)
     }
 
     @Test
     @WithMockUser(username = "someUser", roles = ["USER"])
     fun `GET quiz by id accepted with MockUser`() {
-        val requestBuilder = get("/api/quizzes/0")
         `when`(webQuizService.getQuiz(0)).thenReturn(quiz1)
 
-        mockMvc.perform(requestBuilder)
+        mockMvc.perform(
+            get("/api/quizzes/0"))
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.id").value(0))
@@ -109,12 +106,13 @@ internal class QuizControllerTest {
         `when`(webQuizService.addQuiz(userDetails, quiz1CreateDTO))
             .thenReturn(quiz1)
 
-        val requestBuilder = post("/api/quizzes")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(content)
-            .with(postProcessor)
-
-        mockMvc.perform(requestBuilder)
+        mockMvc.perform(
+            post("/api/quizzes")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content)
+                .with(postProcessor)
+                .with(csrf())
+        )
             .andExpect(status().isOk)
     }
 
@@ -123,9 +121,8 @@ internal class QuizControllerTest {
         val userDetails = UserAdapter(testUser)
         `when`(webQuizService.addQuiz(userDetails, quiz1CreateDTO)).thenReturn(quiz1)
 
-        val requestBuilder = get("/api/quizzes")
-
-        mockMvc.perform(requestBuilder)
+        mockMvc.perform(get("/api/quizzes")
+            .with(csrf()))
             .andExpect(status().isUnauthorized)
     }
 
