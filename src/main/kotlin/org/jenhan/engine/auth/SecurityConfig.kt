@@ -10,6 +10,17 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 
+/**
+ * Spring Security configuration for the Web Quiz Engine application.
+ *
+ * Configures authentication, authorization, and security policies including:
+ * - Password encoding using [BCryptPasswordEncoder]
+ * - HTTP Basic authentication
+ * - Request authorization rules
+ * - default CSRF protection (disable for testing with Postman)
+ *
+ * @property userRepository Repository for loading user details during authentication
+ */
 @Configuration
 class SecurityConfig(private val userRepository: UserRepository) {
     @Bean
@@ -26,6 +37,6 @@ class SecurityConfig(private val userRepository: UserRepository) {
             }
             .userDetailsService(UserDetailsServiceImpl(userRepository))
             .httpBasic(Customizer.withDefaults())
-            .csrf { it.disable() }
+            //.csrf { it.disable() }
             .build()
 }
