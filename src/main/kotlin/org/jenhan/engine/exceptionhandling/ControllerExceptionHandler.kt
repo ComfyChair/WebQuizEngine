@@ -16,6 +16,7 @@ class ControllerExceptionHandler {
     }
     @ExceptionHandler(
         ConstraintViolationException::class,
+        QuizCreationException::class,
         RegistrationException::class
     )
     fun handleBadRequestException(e: RuntimeException): ResponseEntity<CustomErrorMessage> {
