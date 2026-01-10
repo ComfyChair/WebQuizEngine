@@ -1,4 +1,4 @@
-package org.jenhan.engine.auth.registration
+package org.jenhan.engine.security.registration
 
 import jakarta.validation.Valid
 import org.slf4j.LoggerFactory
@@ -8,7 +8,7 @@ import org.springframework.validation.BindingResult
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
-import org.jenhan.engine.exceptionhandling.RegistrationException
+import org.jenhan.engine.exceptions.RegistrationException
 
 /**
  * REST controller for user registration operations.

@@ -1,8 +1,8 @@
-package org.jenhan.engine.auth.registration
+package org.jenhan.engine.security.registration
 
-import org.jenhan.engine.repositories.QuizUser
-import org.jenhan.engine.repositories.UserRepository
-import org.jenhan.engine.exceptionhandling.RegistrationException
+import org.jenhan.engine.model.QuizUser
+import org.jenhan.engine.model.UserRepository
+import org.jenhan.engine.exceptions.RegistrationException
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 

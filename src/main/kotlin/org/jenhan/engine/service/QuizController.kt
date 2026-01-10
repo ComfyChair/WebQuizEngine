@@ -1,13 +1,14 @@
 package org.jenhan.engine.service
 
-import org.jenhan.engine.repositories.QuizCompletion
+import org.jenhan.engine.model.QuizCompletion
 import org.jenhan.engine.service.dtos.QuizCreationObject
 import org.jenhan.engine.service.dtos.QuizDTO
-import org.jenhan.engine.exceptionhandling.AuthorizationException
-import org.jenhan.engine.exceptionhandling.NotFoundException
-import org.jenhan.engine.service.dtos.SolveFeedback
+import org.jenhan.engine.exceptions.AuthenticationException
+import org.jenhan.engine.exceptions.NotFoundException
+import org.jenhan.engine.service.dtos.SolutionFeedback
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Min
+import org.jenhan.engine.service.dtos.Solution
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Page
@@ -52,7 +53,7 @@ class QuizController(private val webQuizService: WebQuizService) {
      * @param userDetails Authentication details of the current user (injected by Spring Security)
      * @param quiz [QuizCreationObject] containing title, text, options, and correct answer
      * @return [QuizDTO] of the newly created quiz
-     * @throws AuthorizationException if user is not authenticated
+     * @throws AuthenticationException if user is not authenticated
      */
     @PostMapping("")
     fun postNewQuiz(
@@ -70,7 +71,7 @@ class QuizController(private val webQuizService: WebQuizService) {
      * @throws NotFoundException if the quiz ID doesn't exist
      */
     @GetMapping("/{id}")
-    fun getQuiz(@PathVariable("id") @Min(0) quizId: Int)
+    fun getQuiz(@PathVariable("id") quizId: Int)
             = webQuizService.getQuiz(quizId)
 
 
@@ -84,21 +85,17 @@ class QuizController(private val webQuizService: WebQuizService) {
      *
      * @param userDetails Authentication details of the current user (injected by Spring Security)
      * @param quizId The ID of the quiz being answered (must be >= 0)
-     * @param answer Map containing the answer, expected format: `{"answer": <integer>}`
-     * @return [ResponseEntity] with [SolveFeedback] indicating whether the answer was correct
+     * @param answer [Solution] containing quiz id and multiple choice answer
+     * @return [ResponseEntity] with [SolutionFeedback] indicating whether the answer was correct
      * @throws NotFoundException if the quiz ID doesn't exist
-     * @throws AuthorizationException if user is not authenticated
+     * @throws AuthenticationException if user is not authenticated
      */
     @PostMapping("/{id}/solve")
     fun postAnswer(
         @AuthenticationPrincipal userDetails: UserDetails?,
-        @PathVariable("id") @Min(0) quizId: Int,
-        @RequestParam answer: Map<String, Int>
-    ): ResponseEntity<SolveFeedback> {
-        LOGGER.debug("Posting answer {} for quiz id {}", answer["answer"], quizId)
-        return webQuizService.evaluateAnswer(userDetails, quizId, answer["answer"])
-    }
-
+        @PathVariable("id") quizId: Int,
+        @RequestBody answer: Solution
+    ) = webQuizService.evaluateAnswer(userDetails, quizId, answer.answer)
 
     /**
      * Deletes a quiz if the authenticated user is its author.
@@ -110,13 +107,13 @@ class QuizController(private val webQuizService: WebQuizService) {
      * @param userDetails Authentication details of the current user (injected by Spring Security)
      * @param quizId The ID of the quiz to delete (must be >= 0)
      * @throws NotFoundException if the quiz ID doesn't exist
-     * @throws AuthorizationException if user is not authenticated or not the quiz author
+     * @throws AuthenticationException if user is not authenticated or not the quiz author
      */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteQuiz(
         @AuthenticationPrincipal userDetails: UserDetails?,
-        @PathVariable("id") @Min(0) quizId: Int,
+        @PathVariable("id") quizId: Int,
     ) {
         LOGGER.debug("Delete request for quiz id {}", quizId)
         webQuizService.deleteQuiz(quizId, userDetails)
@@ -132,12 +129,12 @@ class QuizController(private val webQuizService: WebQuizService) {
      * @param userDetails Authentication details of the current user (injected by Spring Security)
      * @param page Zero-based page number (must be >= 0)
      * @return [ResponseEntity] containing a [Page] of [QuizCompletion] objects with 10 items per page
-     * @throws AuthorizationException if user is not authenticated
+     * @throws AuthenticationException if user is not authenticated
      */
     @GetMapping("/completed")
     fun getCompletedQuizzes(
         @AuthenticationPrincipal userDetails: UserDetails?,
-        @RequestParam @Min(0) page: Int,
+        @RequestParam @Min(0) page: Int = 0,
     ): ResponseEntity<PageImpl<QuizCompletion>> {
         LOGGER.debug("Getting completed quizzes page {} for user {}", page, userDetails?.username)
         return ResponseEntity

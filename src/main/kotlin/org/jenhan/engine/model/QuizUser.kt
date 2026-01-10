@@ -1,4 +1,4 @@
-package org.jenhan.engine.repositories
+package org.jenhan.engine.model
 
 import jakarta.persistence.*
 

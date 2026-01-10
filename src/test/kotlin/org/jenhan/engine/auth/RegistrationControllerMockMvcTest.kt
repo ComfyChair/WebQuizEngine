@@ -1,6 +1,6 @@
 package org.jenhan.engine.auth
 
-import org.jenhan.engine.auth.registration.RegistrationRequest
+import org.jenhan.engine.security.registration.RegistrationRequest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test

@@ -1,6 +1,6 @@
-package org.jenhan.engine.auth
+package org.jenhan.engine.security
 
-import org.jenhan.engine.repositories.QuizUser
+import org.jenhan.engine.model.QuizUser
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails

@@ -1,4 +1,4 @@
-package org.jenhan.engine.repositories
+package org.jenhan.engine.model
 
 import org.springframework.data.repository.CrudRepository
 import org.springframework.data.repository.PagingAndSortingRepository

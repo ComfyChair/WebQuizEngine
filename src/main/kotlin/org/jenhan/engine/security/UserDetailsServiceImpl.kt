@@ -1,7 +1,7 @@
-package org.jenhan.engine.auth
+package org.jenhan.engine.security
 
-import org.jenhan.engine.repositories.UserRepository
-import org.jenhan.engine.repositories.QuizUser
+import org.jenhan.engine.model.UserRepository
+import org.jenhan.engine.model.QuizUser
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException

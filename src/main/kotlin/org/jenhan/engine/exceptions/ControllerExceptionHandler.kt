@@ -1,4 +1,4 @@
-package org.jenhan.engine.exceptionhandling
+package org.jenhan.engine.exceptions
 
 import jakarta.validation.ConstraintViolationException
 import org.springframework.http.HttpStatus
@@ -17,12 +17,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 class ControllerExceptionHandler {
 
     /**
-     * Handles NotFoundException by returning a 404 Not Found response.
+     * Handles exceptions due to missing resources by returning a 404 Not Found response.
      *
      * Triggered when a requested resource (quiz, user, etc.) cannot be found in the database.
      *
-     * @param e The NotFoundException that was thrown
-     * @return ResponseEntity with CustomErrorMessage and HTTP 404 status
+     * @param e The [NotFoundException] that was thrown
+     * @return [ResponseEntity] with [CustomErrorMessage] and HTTP 404 status
      */
     @ExceptionHandler(NotFoundException::class)
     fun handleNotFoundException(e: NotFoundException): ResponseEntity<CustomErrorMessage> {
@@ -36,9 +36,9 @@ class ControllerExceptionHandler {
      * Triggered when request data fails validation constraints, quiz creation fails,
      * or user registration encounters an error.
      *
-     * @param e The RuntimeException that was thrown (ConstraintViolationException,
-     *          QuizCreationException, or RegistrationException)
-     * @return ResponseEntity with CustomErrorMessage and HTTP 400 status
+     * @param e The [RuntimeException] that was thrown ([ConstraintViolationException],
+     *          [QuizCreationException], or [RegistrationException])
+     * @return [ResponseEntity] with [CustomErrorMessage] and HTTP 400 status
      */
     @ExceptionHandler(
         ConstraintViolationException::class,
@@ -50,21 +50,36 @@ class ControllerExceptionHandler {
         return ResponseEntity(body, HttpStatus.BAD_REQUEST)
     }
 
-
     /**
-     * Handles authorization exceptions by returning a 401 Unauthorized response.
+     * Handles authentication exceptions by returning a 401 Unauthorized response.
      *
-     * Triggered when a user is not authenticated or lacks necessary permissions
-     * to perform the requested action.
+     * Triggered when an unauthenticated user tries to access a secured endpoint.
      *
-     * @param e The AuthorizationException that was thrown
-     * @return ResponseEntity with CustomErrorMessage and HTTP 401 status
+     * @param e The [AuthenticationException] that was thrown
+     * @return [ResponseEntity] with [CustomErrorMessage] and HTTP 401 status
      */
     @ExceptionHandler(
-        AuthorizationException::class,
+        AuthenticationException::class,
     )
-    fun handleAuthorizationException(e: AuthorizationException): ResponseEntity<CustomErrorMessage> {
+    fun handleAuthorizationException(e: AuthenticationException): ResponseEntity<CustomErrorMessage> {
         val body = CustomErrorMessage(e.message ?: "Unknown error")
         return ResponseEntity(body, HttpStatus.UNAUTHORIZED)
+    }
+
+    /**
+     * Handles authorization exceptions by returning a 403 Forbidden response.
+     *
+     * Triggered when an authenticated user lacks necessary permissions
+     * to perform the requested action.
+     *
+     * @param e The [PermissionException] that was thrown
+     * @return [ResponseEntity] with [CustomErrorMessage] and HTTP 403 status
+     */
+    @ExceptionHandler(
+        PermissionException::class,
+    )
+    fun handlePermissionException(e: PermissionException): ResponseEntity<CustomErrorMessage> {
+        val body = CustomErrorMessage(e.message ?: "Unknown error")
+        return ResponseEntity(body, HttpStatus.FORBIDDEN)
     }
 }

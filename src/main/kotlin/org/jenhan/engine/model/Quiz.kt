@@ -1,4 +1,4 @@
-package org.jenhan.engine.repositories
+package org.jenhan.engine.model
 
 import org.jenhan.engine.service.dtos.QuizDTO
 import jakarta.persistence.ElementCollection
@@ -40,7 +40,7 @@ data class Quiz(
     val options: List<String> = emptyList(),
     @ElementCollection(fetch = FetchType.EAGER)
     @Fetch(FetchMode.SUBSELECT)
-    val correctOptions: List<Int> = emptyList(),
+    val correctOptions: Set<Int> = emptySet(),
 ) {
     fun toDTO() : QuizDTO {
         return QuizDTO(id!!.toInt(), title, text, options)

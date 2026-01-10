@@ -1,6 +1,6 @@
-package org.jenhan.engine.auth
+package org.jenhan.engine.security
 
-import org.jenhan.engine.repositories.UserRepository
+import org.jenhan.engine.model.UserRepository
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod

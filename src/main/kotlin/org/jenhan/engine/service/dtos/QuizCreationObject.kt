@@ -24,6 +24,6 @@ data class QuizCreationObject (
     val text: String,
     @field:Size(min = 2, message = "There must be at least two answer options")
     val options: List<String>,
-    @field:Min(0, message = "answer index must correspond to an option index")
-    val answer: Int
+    @field:Size(min = 1, message = "There must be at least one correct option")
+    val answer: Set<Int>
 )

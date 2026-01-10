@@ -1,4 +1,4 @@
-package org.jenhan.engine.exceptionhandling
+package org.jenhan.engine.exceptions
 
 /**
  * Data class representing a custom error message for API error responses.

@@ -1,16 +1,23 @@
 package org.jenhan.engine.service
 
-import org.jenhan.engine.auth.SecurityConfig
-import org.jenhan.engine.repositories.QuizUser
-import org.jenhan.engine.auth.UserAdapter
-import org.jenhan.engine.auth.UserDetailsServiceImpl
-import org.jenhan.engine.repositories.UserRepository
-import org.jenhan.engine.service.dtos.QuizCreationObject
-import org.jenhan.engine.service.dtos.QuizDTO
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.hamcrest.Matchers
 import org.hamcrest.collection.IsCollectionWithSize.hasSize
+import org.jenhan.engine.exceptions.AuthenticationException
+import org.jenhan.engine.exceptions.NotFoundException
+import org.jenhan.engine.exceptions.PermissionException
+import org.jenhan.engine.model.QuizUser
+import org.jenhan.engine.model.UserRepository
+import org.jenhan.engine.security.SecurityConfig
+import org.jenhan.engine.security.UserAdapter
+import org.jenhan.engine.security.UserDetailsServiceImpl
+import org.jenhan.engine.service.dtos.QuizCreationObject
+import org.jenhan.engine.service.dtos.QuizDTO
+import org.jenhan.engine.service.dtos.Solution
 import org.junit.jupiter.api.Test
+import org.mockito.ArgumentMatchers.*
+import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
@@ -19,11 +26,13 @@ import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.MediaType
 import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
@@ -36,25 +45,28 @@ internal class QuizControllerTest {
     @field:MockitoBean
     private lateinit var userRepository: UserRepository
     @field:MockitoBean
-    private lateinit var userDetailService: UserDetailsServiceImpl
-    @field:MockitoBean
     private lateinit var webQuizService: WebQuizService
 
-    private val quiz1CreateDTO = QuizCreationObject(QUIZ1_TITLE, QUIZ1_TEXT,QUIZ1_OPTIONS, 2)
+    private val quiz1CreateDTO = QuizCreationObject(QUIZ1_TITLE, QUIZ1_TEXT,QUIZ1_OPTIONS, setOf(2))
     private val quiz1 = QuizDTO(0,QUIZ1_TITLE,QUIZ1_TEXT,QUIZ1_OPTIONS)
     private val quiz2 = QuizDTO(1,QUIZ2_TITLE,QUIZ2_TEXT,QUIZ2_OPTIONS)
+    private val quiz1SolutionCorrect = Solution(0, setOf(2))
+    private val quiz1SolutionWrong = Solution(0, setOf(2, 1))
 
     private val testUser = QuizUser(0,TEST_USER_NAME,TEST_USER_PASSWORD)
 
+    /*
+    GET all quizzes / single quiz
+     */
     @Test
-    fun `GET all quizzes denied for unauthorized`() {
+    fun `GET all quizzes denied when unauthorized`() {
         mockMvc.perform(get("/api/quizzes"))
             .andExpect(status().isUnauthorized)
     }
 
     @Test
-    @WithMockUser(username = "someUser", roles = ["USER"])
-    fun `GET all quizzes accepted with MockUser`() {
+    @WithMockUser(username = "testUser", roles = ["USER"])
+    fun `GET all quizzes returns correct list with MockUser`() {
         `when`(webQuizService.getQuizzes(0))
             .thenReturn(PageImpl(listOf(quiz1, quiz2), PageRequest.of(0, 10), 2))
 
@@ -74,16 +86,23 @@ internal class QuizControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "testUser", roles = ["USER"])
+    fun `GET all quizzes with negative page RequestParam is bad request`() {
+        mockMvc.perform(
+            get("/api/quizzes?page=-1"))
+            .andExpect(status().isBadRequest)
+    }
+
+    @Test
     fun `GET quiz by id denied without authentication`() {
-        `when`(webQuizService.getQuiz(0)).thenReturn(quiz1)
 
         mockMvc.perform(get("/api/quizzes/0"))
             .andExpect(status().isUnauthorized)
     }
 
     @Test
-    @WithMockUser(username = "someUser", roles = ["USER"])
-    fun `GET quiz by id accepted with MockUser`() {
+    @WithMockUser(username = "testUser", roles = ["USER"])
+    fun `GET quiz by id returns quiz DTO with MockUser`() {
         `when`(webQuizService.getQuiz(0)).thenReturn(quiz1)
 
         mockMvc.perform(
@@ -94,7 +113,23 @@ internal class QuizControllerTest {
             .andExpect(jsonPath("$.title").value(quiz1.title))
             .andExpect(jsonPath("$.text").value(quiz1.text))
             .andExpect(jsonPath("$.options", hasSize<Any>(4)))
+            .andExpect(jsonPath("$.correctOptions").doesNotExist())
+            .andExpect(jsonPath("$.answer").doesNotExist())
     }
+
+    @Test
+    @WithMockUser(username = "testUser", roles = ["USER"])
+    fun `GET quiz with invalid id is NOTFOUND`() {
+        `when`(webQuizService.getQuiz(anyInt())).thenThrow(NotFoundException("not found"))
+
+        mockMvc.perform(
+            get("/api/quizzes/1"))
+            .andExpect(status().isNotFound)
+    }
+
+    /*
+    POST new quiz
+     */
 
     @Test
     fun `POST new quiz accepted with mocked user`() {
@@ -118,16 +153,130 @@ internal class QuizControllerTest {
 
     @Test
     fun `POST new quiz declined without authentication`() {
-        val userDetails = UserAdapter(testUser)
-        `when`(webQuizService.addQuiz(userDetails, quiz1CreateDTO)).thenReturn(quiz1)
+        val content = Json.encodeToString(quiz1CreateDTO).toByteArray()
 
-        mockMvc.perform(get("/api/quizzes")
+        mockMvc.perform(
+            post("/api/quizzes")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content)
+                .with(csrf())
+        ).andExpect(status().isUnauthorized)
+    }
+
+    /*
+    DELETE quiz
+     */
+
+    @Test
+    @WithMockUser(username = "testUser", roles = ["USER"])
+    fun `DELETE quiz with correct credentials yields NO CONTENT`() {
+        mockMvc.perform(
+            delete("/api/quizzes/1")
+                .with(csrf())
+        ). andExpect(status().isNoContent)
+    }
+
+    @Test
+    @WithMockUser(username = "testUser", roles = ["USER"])
+    fun `DELETE quiz without Permission is FORBIDDEN`() {
+        `when`(webQuizService.deleteQuiz(anyInt(), any(UserDetails::class.java)))
+            .thenThrow(PermissionException("not allowed"))
+        mockMvc.perform(
+            delete("/api/quizzes/1")
+                .with(csrf())
+        ). andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `DELETE quiz without authentication is UNAUTHORIZED`() {
+        `when`(webQuizService.deleteQuiz(1, null)).thenThrow(AuthenticationException("not authenticated"))
+        mockMvc.perform(
+            delete("/api/quizzes/1")
+                .with(csrf())
+        ). andExpect(status().isUnauthorized)
+    }
+
+    @Test
+    @WithMockUser(username = "testUser", roles = ["USER"])
+    fun `DELETE quiz with wrong quiz id yields NOT FOUND`() {
+        `when`(webQuizService.deleteQuiz(anyInt(), any(UserDetails::class.java)))
+            .thenThrow(NotFoundException("not found"))
+        mockMvc.perform(
+            delete("/api/quizzes/1")
+                .with(csrf())
+        ). andExpect(status().isNotFound)
+    }
+
+    /*
+    POST solve quiz
+     */
+
+    @Test
+    fun `POST solve declined without authentication`() {
+        val content = Json.encodeToString(quiz1SolutionCorrect).toByteArray()
+        mockMvc.perform(
+            post("/api/quizzes/0/solve")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content)
+                .with(csrf())
+        ).andExpect(status().isUnauthorized)
+    }
+
+    @Test
+    @WithMockUser(username = "testUser", roles = ["USER"])
+    fun `POST solve with correct answer`() {
+        val content = Json.encodeToString(quiz1SolutionCorrect).toByteArray()
+        mockMvc.perform(
+            post("/api/quizzes/0/solve")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content)
+                .with(csrf())
+        ).andExpect(status().isOk)
+    }
+
+    @Test
+    @WithMockUser(username = "testUser", roles = ["USER"])
+    fun `POST solve with wrong answer`() {
+        val content = Json.encodeToString(quiz1SolutionWrong).toByteArray()
+        mockMvc.perform(
+            post("/api/quizzes/0/solve")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content)
+                .with(csrf())
+        ).andExpect(status().isOk)
+    }
+
+    @Test
+    @WithMockUser(username = "testUser", roles = ["USER"])
+    fun `POST solve with invalid id is NOT FOUND`() {
+        val content = Json.encodeToString(quiz1SolutionCorrect).toByteArray()
+
+        `when`(webQuizService.evaluateAnswer(
+            any(UserDetails::class.java), anyInt(), anySet() ))
+            .thenThrow(NotFoundException("not found"))
+
+        mockMvc.perform(
+            post("/api/quizzes/0/solve")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content)
+                .with(csrf())
+        ).andExpect(status().isNotFound)
+    }
+
+    /*
+    GET completed quizzes
+     */
+
+    @Test
+    @WithMockUser(username = "testUser", roles = ["USER"])
+    fun `GET completed quizzes with valid credentials returns correct JSON`() {
+        mockMvc.perform(get("/api/quizzes/completed")
             .with(csrf()))
-            .andExpect(status().isUnauthorized)
+            .andExpect(status().isOk)
     }
 
     companion object {
-        const val TEST_USER_NAME = "testuser"
+        const val TEST_USER_NAME = "testUser"
         const val TEST_USER_PASSWORD = "password"
 
         const val QUIZ1_TITLE = "The Java Logo"

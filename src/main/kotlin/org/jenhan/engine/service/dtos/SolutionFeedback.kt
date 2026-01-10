@@ -9,7 +9,7 @@ package org.jenhan.engine.service.dtos
  * @property success Boolean indicating whether the submitted answer was correct
  * @property feedback Human-readable message
  */
-data class SolveFeedback(val success: Boolean) {
+data class SolutionFeedback(val success: Boolean) {
     val feedback: String = if (success) {
         "Congratulations, you're right!"
     } else {

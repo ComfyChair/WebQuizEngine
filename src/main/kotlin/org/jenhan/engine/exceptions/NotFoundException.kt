@@ -1,4 +1,4 @@
-package org.jenhan.engine.exceptionhandling
+package org.jenhan.engine.exceptions
 
 /**
  * Exception thrown when a requested resource cannot be found.

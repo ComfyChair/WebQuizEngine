@@ -1,4 +1,4 @@
-package org.jenhan.engine.auth.registration
+package org.jenhan.engine.security.registration
 
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size

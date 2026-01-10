@@ -1,17 +1,19 @@
 package org.jenhan.engine.service
 
-import org.jenhan.engine.exceptionhandling.AuthorizationException
-import org.jenhan.engine.exceptionhandling.NotFoundException
-import org.jenhan.engine.exceptionhandling.QuizCreationException
-import org.jenhan.engine.repositories.Quiz
-import org.jenhan.engine.repositories.QuizCompletion
-import org.jenhan.engine.repositories.QuizRepository
-import org.jenhan.engine.repositories.QuizUser
-import org.jenhan.engine.repositories.UserRepository
-import org.jenhan.engine.service.dtos.SolveFeedback
+import org.jenhan.engine.exceptions.AuthenticationException
+import org.jenhan.engine.exceptions.NotFoundException
+import org.jenhan.engine.exceptions.PermissionException
+import org.jenhan.engine.exceptions.QuizCreationException
+import org.jenhan.engine.model.Quiz
+import org.jenhan.engine.model.QuizCompletion
+import org.jenhan.engine.model.QuizRepository
+import org.jenhan.engine.model.QuizUser
+import org.jenhan.engine.model.UserRepository
+import org.jenhan.engine.service.dtos.SolutionFeedback
 import org.jenhan.engine.service.dtos.QuizCreationObject
 import org.jenhan.engine.service.dtos.QuizDTO
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
@@ -33,8 +35,8 @@ import kotlin.jvm.optionals.getOrNull
  */
 @Service
 class WebQuizService(
-    private val quizzes: QuizRepository,
-    private val userRepository: UserRepository,
+    @Autowired private val quizzes: QuizRepository,
+    @Autowired private val userRepository: UserRepository,
 ) {
 
     /**
@@ -64,29 +66,29 @@ class WebQuizService(
     /**
      * Evaluates a user's answer to a quiz and records successful completions.
      *
-     * Checks if the [answerId] matches the quiz's [Quiz.correctOptions] ids.
+     * Checks if the [answerIds] matches the quiz's [Quiz.correctOptions] ids.
      * On a correct answer, saves a [QuizCompletion] record with timestamp to the [QuizUser]'s solved quizzes.
      *
      * @param userDetails Authentication details of the current user
      * @param quizId The ID of the quiz being answered
-     * @param answerId The user's selected answer
-     * @return ResponseEntity containing [SolveFeedback] with success status
+     * @param answerIds The user's selected answer
+     * @return ResponseEntity containing [SolutionFeedback] with success status
      * @throws NotFoundException if the quiz ID doesn't exist
-     * @throws AuthorizationException if user is not authenticated
+     * @throws AuthenticationException if user is not authenticated
      */
-    fun evaluateAnswer(userDetails: UserDetails?, quizId: Int, answerId: Int?): ResponseEntity<SolveFeedback> {
+    fun evaluateAnswer(userDetails: UserDetails?, quizId: Int, answerIds: Set<Int>): ResponseEntity<SolutionFeedback> {
         val user = getUser(userDetails)
         val quiz = quizzes.findById(quizId.toLong()).getOrNull() ?: throw NotFoundException("id does not correspond to a quiz in the database")
 
-        LOGGER.debug("Evaluating answer {} for quiz with correct option of {}", answerId, quiz.correctOptions)
-        return if (answerId in quiz.correctOptions) {
+        LOGGER.debug("Evaluating answer {} for quiz with correct option of {}", answerIds, quiz.correctOptions)
+        return if (answerIds == quiz.correctOptions) {
             LOGGER.debug("Answer: correct")
             user.solvedQuizzes.add(QuizCompletion(quizId, LocalDateTime.now()))
             userRepository.save(user)
-            ResponseEntity.ok().body(SolveFeedback(true))
+            ResponseEntity.ok().body(SolutionFeedback(true))
         } else {
             LOGGER.debug("Answer: wrong")
-            ResponseEntity.ok().body(SolveFeedback(false))
+            ResponseEntity.ok().body(SolutionFeedback(false))
         }
     }
 
@@ -99,7 +101,7 @@ class WebQuizService(
      * @param userDetails Authentication details of the current user
      * @param quizCO Quiz creation object containing quiz details (title, text, options, answer)
      * @return QuizDTO of the newly created quiz
-     * @throws AuthorizationException if user is not authenticated
+     * @throws AuthenticationException if user is not authenticated
      */
     fun addQuiz(userDetails: UserDetails?, quizCO: QuizCreationObject) : QuizDTO {
         val user = getUser(userDetails)
@@ -117,12 +119,12 @@ class WebQuizService(
      * @param quizId The ID of the quiz to delete
      * @param userDetails Authentication details of the current user
      * @throws NotFoundException if the quiz ID doesn't exist
-     * @throws AuthorizationException if user is not authenticated or not the quiz author
+     * @throws AuthenticationException if user is not authenticated or not the quiz author
      */
     fun deleteQuiz(quizId: Int, userDetails: UserDetails?) {
         val user = getUser(userDetails)
         val quiz = quizzes.findById(quizId.toLong()).orElseThrow { NotFoundException("quiz with id $quizId does not exist") }
-        if (user != quiz.author) throw AuthorizationException("user is not the author of this quiz and thus not allowed to delete it")
+        if (user != quiz.author) throw PermissionException("user is not the author of this quiz and thus not allowed to delete it")
         quizzes.delete(quiz)
     }
 
@@ -134,15 +136,15 @@ class WebQuizService(
      * @param userDetails Authentication details of the current user
      * @param page Zero-based page number
      * @return [PageImpl] of [QuizCompletion] objects, with 10 items per page
-     * @throws AuthorizationException if user is not authenticated
+     * @throws AuthenticationException if user is not authenticated
      */
     fun getCompleted(userDetails: UserDetails?, page: Int): PageImpl<QuizCompletion> {
         val user = getUser(userDetails)
         val quizzes = userRepository.findCompletedQuizzesByUser(user)
-        return PageImpl<QuizCompletion>( quizzes, PageRequest.of(
+        return PageImpl( quizzes, PageRequest.of(
             page,
             10,
-            Sort.by("competedAt").descending()
+            Sort.by("completedAt").descending()
         ), quizzes.size.toLong())
     }
 
@@ -151,10 +153,10 @@ class WebQuizService(
      *
      * @param userDetails Authentication details (nullable)
      * @return [QuizUser] entity of the authenticated user
-     * @throws AuthorizationException if userDetails is null (user not authenticated)
+     * @throws AuthenticationException if userDetails is null (user not authenticated)
      */
     private fun getUser(userDetails: UserDetails?): QuizUser {
-        if (userDetails == null) throw AuthorizationException("not authenticated")
+        if (userDetails == null) throw AuthenticationException("not authenticated")
         return userRepository.findByEmail(userDetails.username)!!
     }
 
@@ -171,8 +173,8 @@ class WebQuizService(
          * @throws QuizCreationException if [QuizCreationObject.answer] index is out of [QuizCreationObject.options]' bounds
          */
         private fun QuizCreationObject.toQuiz(author: QuizUser): Quiz {
-            if (answer !in 0..<options.size) throw QuizCreationException("answer index must correspond to an option index")
-            return Quiz(null, author, title, text, options, listOf(answer))
+            if (answer.any { it !in 0..<options.size } ) throw QuizCreationException("answer indices must correspond to valid option indices")
+            return Quiz(null, author, title, text, options, answer)
         }
     }
 }

@@ -1,4 +1,4 @@
-package org.jenhan.engine.repositories
+package org.jenhan.engine.model
 
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.CrudRepository
