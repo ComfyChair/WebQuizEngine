@@ -60,7 +60,7 @@ class WebQuizService(
      * @param page Zero-based page number
      * @return [Page] of [QuizDTO] objects, with 10 items per page
      */
-    fun getQuizzes(page: Int = 0): Page<QuizDTO> {
+    fun getQuizzes(page: Int): Page<QuizDTO> {
         val page: Page<Quiz> = quizzes.findAll(PageRequest.of(page, 10))
         return page.map { it.toDTO() }
     }
@@ -108,8 +108,10 @@ class WebQuizService(
     fun addQuiz(userDetails: UserDetails?, quizCO: QuizCreationObject) : QuizDTO {
         val user = getUser(userDetails)
         val newQuiz = quizCO.toQuiz(id = null, author = user) // id generation is handled by persistence layer
+        println("So far, so good")
         quizzes.save(newQuiz)
-        LOGGER.debug("Added quiz with id {} to quizzes: {}", newQuiz.id, quizzes)
+        println("Even better")
+        LOGGER.debug("Added quiz with id {} to quizzes", newQuiz.id)
         return newQuiz.toDTO()
     }
 
@@ -184,11 +186,14 @@ class WebQuizService(
          *
          * @param author The [QuizUser] creating the quiz
          * @return [Quiz] entity with null ID (to be assigned by database upon persistence)
-         * @throws QuizCreationException if [QuizCreationObject.answer] index is out of [QuizCreationObject.options]' bounds
+         * @throws QuizCreationException if any [QuizCreationObject.answer] index is out of [QuizCreationObject.options]' bounds
          */
         fun QuizCreationObject.toQuiz(id: Long?, author: QuizUser): Quiz {
-            if (answer.any { it !in 0..<options.size } ) throw QuizCreationException("answer indices must correspond to valid option indices")
-            return Quiz(id, author, title, text, options, answer)
+            if (this.answer.all { it in this.options.indices.toSet() }) {
+                return Quiz(id, author, title, text, options, answer)
+            } else {
+                throw QuizCreationException("answer indices must correspond to valid option indices")
+            }
         }
     }
 }

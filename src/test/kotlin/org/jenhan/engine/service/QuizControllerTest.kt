@@ -1,15 +1,8 @@
 package org.jenhan.engine.service
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.hamcrest.collection.IsCollectionWithSize.hasSize
-import org.jenhan.engine.TestData.Companion.quiz1DTO
-import org.jenhan.engine.TestData.Companion.quiz1Completion
-import org.jenhan.engine.TestData.Companion.quiz1CreateDTO
-import org.jenhan.engine.TestData.Companion.quiz1SolutionCorrect
-import org.jenhan.engine.TestData.Companion.quiz1SolutionWrong
-import org.jenhan.engine.TestData.Companion.quiz2DTO
-import org.jenhan.engine.TestData.Companion.quiz2Completion
-import org.jenhan.engine.TestData.Companion.testUser
+import org.jenhan.engine.TestData
 import org.jenhan.engine.exceptions.AuthenticationException
 import org.jenhan.engine.exceptions.NotFoundException
 import org.jenhan.engine.exceptions.PermissionException
@@ -46,6 +39,8 @@ internal class QuizControllerTest {
     @field:MockitoBean
     private lateinit var webQuizService: WebQuizService
 
+    private val mapper = ObjectMapper()
+    private val testData = TestData.getInstance()
 
     /*
     GET all quizzes / single quiz
@@ -60,7 +55,8 @@ internal class QuizControllerTest {
     @WithMockUser(username = "testUser", roles = ["USER"])
     fun `GET all quizzes returns correct list with MockUser`() {
         `when`(webQuizService.getQuizzes(0))
-            .thenReturn(PageImpl(listOf(quiz1DTO, quiz2DTO), PageRequest.of(0, 10), 2))
+            .thenReturn(PageImpl(listOf(testData.quiz1DTO, testData.quiz2DTO),
+                PageRequest.of(0, 10), 2))
 
         mockMvc.perform(
             get("/api/quizzes?page=0"))
@@ -68,12 +64,12 @@ internal class QuizControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.content").isArray)
             .andExpect(jsonPath("$.content[0].id").value(0))
-            .andExpect(jsonPath("$.content[0].title").value(quiz1DTO.title))
-            .andExpect(jsonPath("$.content[0].text").value(quiz1DTO.text))
+            .andExpect(jsonPath("$.content[0].title").value(testData.quiz1DTO.title))
+            .andExpect(jsonPath("$.content[0].text").value(testData.quiz1DTO.text))
             .andExpect(jsonPath("$.content[0].options", hasSize<Any>(4)))
             .andExpect(jsonPath("$.content[1].id").value(1))
-            .andExpect(jsonPath("$.content[1].title").value(quiz2DTO.title))
-            .andExpect(jsonPath("$.content[1].text").value(quiz2DTO.text))
+            .andExpect(jsonPath("$.content[1].title").value(testData.quiz2DTO.title))
+            .andExpect(jsonPath("$.content[1].text").value(testData.quiz2DTO.text))
             .andExpect(jsonPath("$.content[1].options", hasSize<Any>(4)))
     }
 
@@ -94,15 +90,15 @@ internal class QuizControllerTest {
     @Test
     @WithMockUser(username = "testUser", roles = ["USER"])
     fun `GET quiz by id returns quiz DTO with MockUser`() {
-        `when`(webQuizService.getQuiz(0)).thenReturn(quiz1DTO)
+        `when`(webQuizService.getQuiz(0)).thenReturn(testData.quiz1DTO)
 
         mockMvc.perform(
             get("/api/quizzes/0"))
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.id").value(0))
-            .andExpect(jsonPath("$.title").value(quiz1DTO.title))
-            .andExpect(jsonPath("$.text").value(quiz1DTO.text))
+            .andExpect(jsonPath("$.title").value(testData.quiz1DTO.title))
+            .andExpect(jsonPath("$.text").value(testData.quiz1DTO.text))
             .andExpect(jsonPath("$.options", hasSize<Any>(4)))
             .andExpect(jsonPath("$.correctOptions").doesNotExist())
             .andExpect(jsonPath("$.answer").doesNotExist())
@@ -124,14 +120,13 @@ internal class QuizControllerTest {
 
     @Test
     fun `POST new quiz accepted with mocked user`() {
-        val objectMapper = jacksonObjectMapper()
-        val content = objectMapper.writeValueAsString(quiz1CreateDTO).toByteArray()
+        val content = mapper.writeValueAsString(testData.quiz1CreateDTO).toByteArray()
         val postProcessor = SecurityMockMvcRequestPostProcessors
-            .user(testUser.email)
+            .user(testData.testUser.email)
             .authorities(SimpleGrantedAuthority("USER"))
-        val userDetails = UserAdapter(testUser)
-        `when`(webQuizService.addQuiz(userDetails, quiz1CreateDTO))
-            .thenReturn(quiz1DTO)
+        val userDetails = UserAdapter(testData.testUser)
+        `when`(webQuizService.addQuiz(userDetails, testData.quiz1CreateDTO))
+            .thenReturn(testData.quiz1DTO)
 
         mockMvc.perform(
             post("/api/quizzes")
@@ -145,8 +140,7 @@ internal class QuizControllerTest {
 
     @Test
     fun `POST new quiz declined without authentication`() {
-        val objectMapper = jacksonObjectMapper()
-        val content = objectMapper.writeValueAsString(quiz1CreateDTO).toByteArray()
+        val content = mapper.writeValueAsString(testData.quiz1CreateDTO).toByteArray()
 
         mockMvc.perform(
             post("/api/quizzes")
@@ -182,7 +176,8 @@ internal class QuizControllerTest {
 
     @Test
     fun `DELETE quiz without authentication is UNAUTHORIZED`() {
-        `when`(webQuizService.deleteQuiz(1, null)).thenThrow(AuthenticationException("not authenticated"))
+        `when`(webQuizService.deleteQuiz(1, null))
+            .thenThrow(AuthenticationException("not authenticated"))
         mockMvc.perform(
             delete("/api/quizzes/1")
                 .with(csrf())
@@ -206,8 +201,7 @@ internal class QuizControllerTest {
 
     @Test
     fun `POST solve declined without authentication`() {
-        val objectMapper = jacksonObjectMapper()
-        val content = objectMapper.writeValueAsString(quiz1SolutionCorrect).toByteArray()
+        val content = mapper.writeValueAsString(testData.quiz1SolutionCorrect).toByteArray()
         mockMvc.perform(
             post("/api/quizzes/0/solve")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -219,8 +213,7 @@ internal class QuizControllerTest {
     @Test
     @WithMockUser(username = "testUser", roles = ["USER"])
     fun `POST solve with correct answer`() {
-        val objectMapper = jacksonObjectMapper()
-        val content = objectMapper.writeValueAsString(quiz1SolutionCorrect).toByteArray()
+        val content = mapper.writeValueAsString(testData.quiz1SolutionCorrect).toByteArray()
         mockMvc.perform(
             post("/api/quizzes/0/solve")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -232,8 +225,7 @@ internal class QuizControllerTest {
     @Test
     @WithMockUser(username = "testUser", roles = ["USER"])
     fun `POST solve with wrong answer`() {
-        val objectMapper = jacksonObjectMapper()
-        val content = objectMapper.writeValueAsString(quiz1SolutionWrong).toByteArray()
+        val content = mapper.writeValueAsString(testData.quiz1SolutionWrong).toByteArray()
         mockMvc.perform(
             post("/api/quizzes/0/solve")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -245,8 +237,7 @@ internal class QuizControllerTest {
     @Test
     @WithMockUser(username = "testUser", roles = ["USER"])
     fun `POST solve with invalid id is NOT FOUND`() {
-        val objectMapper = jacksonObjectMapper()
-        val content = objectMapper.writeValueAsString(quiz1SolutionCorrect).toByteArray()
+        val content = mapper.writeValueAsString(testData.quiz1SolutionCorrect).toByteArray()
 
         `when`(webQuizService.evaluateAnswer(
             any(UserDetails::class.java), anyInt(), anySet() ))
@@ -267,7 +258,7 @@ internal class QuizControllerTest {
     @Test
     @WithMockUser(username = "testUser", roles = ["USER"])
     fun `GET completed quizzes with valid credentials returns correct JSON`() {
-        val quizList = listOf(quiz1Completion,quiz2Completion).sortedByDescending { it.completedAt }
+        val quizList = listOf(testData.quiz1Completion,testData.quiz2Completion).sortedByDescending { it.completedAt }
         `when`(webQuizService.getCompleted(
             any(UserDetails::class.java), anyInt()))
             .thenReturn(quizList.toPage(0,10))
@@ -284,7 +275,7 @@ internal class QuizControllerTest {
 
     @Test
     fun `GET completed quizzes without credentials is UNAUTHORIZED`() {
-        val quizList = listOf(quiz1Completion,quiz2Completion).sortedByDescending { it.completedAt }
+        val quizList = listOf(testData.quiz1Completion,testData.quiz2Completion).sortedByDescending { it.completedAt }
         `when`(webQuizService.getCompleted(
             any(UserDetails::class.java), anyInt()))
             .thenReturn(quizList.toPage(0,10))

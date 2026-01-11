@@ -43,6 +43,6 @@ data class Quiz(
     val correctOptions: Set<Int> = emptySet(),
 ) {
     fun toDTO() : QuizDTO {
-        return QuizDTO(id!!.toInt(), title, text, options)
+        return QuizDTO(id?.toInt(), title, text, options)
     }
 }

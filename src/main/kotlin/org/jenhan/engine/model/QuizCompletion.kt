@@ -16,6 +16,6 @@ import java.time.LocalDateTime
  */
 @Embeddable
 data class QuizCompletion(
-    val id: Int,
+    val id: Int?,
     val completedAt: LocalDateTime
 )

@@ -11,8 +11,8 @@ package org.jenhan.engine.service.dtos
  * @property text The quiz question or description text
  * @property options List of available answer options presented to the user
  */
-class QuizDTO (
-    val id: Int,
+data class QuizDTO (
+    val id: Int?,
     val title: String,
     val text: String,
     val options: List<String>,
