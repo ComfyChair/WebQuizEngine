@@ -23,7 +23,6 @@ Authenticated users can:
 
 The project demonstrates core backend skills including **REST API design, authentication and database persistence**.
 
----
 
 ## 🚀 Features
 
@@ -37,8 +36,6 @@ The project demonstrates core backend skills including **REST API design, authen
 - 🗄️ **Persistent storage** using JPA / Hibernate
 - ⚙️ Layered backend architecture
 
-----
-
 
 ## 🛠️ Tech Stack
 
@@ -51,7 +48,6 @@ The project demonstrates core backend skills including **REST API design, authen
 - **Serialization:** Jackson
 - **API Style:** REST (JSON)
 
----
 
 ## 🧩 Architecture Overview
 
@@ -61,7 +57,6 @@ The application follows a layered architecture:
 * repository → data access (JPA)
 * model → entities / DTOs
 
-----
 
 ## 📡 API Endpoints
 ### Authentication
@@ -85,7 +80,6 @@ The application follows a layered architecture:
 | POST   | `/api/quizzes/{id}/solve`       | Submit answer                |
 | GET    | `/api/quizzes/completed`        | Get completed quizzes (auth) |
 
----
 
 ## 🧾 Example Requests
 
@@ -115,7 +109,6 @@ curl -X POST http://localhost:8889/api/quizzes/1/solve \\ \
 curl -X DELETE http://localhost:8889/api/quizzes/1 \\ \
 -u user@example.com:secret
 
-----
 
 ## 🗄️ Data Persistence
 
@@ -127,7 +120,6 @@ curl -X DELETE http://localhost:8889/api/quizzes/1 \\ \
 
 The persistence layer is abstracted through repositories to keep business logic independent of the database.
 
-----
 ## 🧪 Testing
 
 * Unit tests for service layer
@@ -137,7 +129,6 @@ The persistence layer is abstracted through repositories to keep business logic 
   * Mockito
   * MockMvc 
 
-----
 
 ## 📈 What I Learned
 
