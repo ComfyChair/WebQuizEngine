@@ -1,12 +1,12 @@
 package org.jenhan.engine.service
 
-import org.jenhan.engine.TestData
+import org.jenhan.engine.TestHelper
+import org.jenhan.engine.TestHelper.Companion.toPage
 import org.jenhan.engine.exceptions.AuthenticationException
 import org.jenhan.engine.exceptions.NotFoundException
 import org.jenhan.engine.exceptions.PermissionException
 import org.jenhan.engine.model.QuizRepository
 import org.jenhan.engine.model.UserRepository
-import org.jenhan.engine.service.WebQuizService.Companion.toPage
 import org.jenhan.engine.service.WebQuizService.Companion.toQuiz
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -21,6 +21,7 @@ import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import java.util.*
 
@@ -33,7 +34,9 @@ internal class WebQuizServiceTest {
     @field:MockitoBean
     private lateinit var userRepository: UserRepository
 
-    private val testData = TestData.getInstance()
+    private val testData = TestHelper.getInstance()
+
+
 
     @BeforeEach
     fun stubDB() {
@@ -78,18 +81,23 @@ internal class WebQuizServiceTest {
         verify(quizRepository).findAll(PageRequest.of(page, 10))
     }
 
-    @Test
-    fun `getCompleted for valid user calls repository`() {
-        quizService.getCompleted(testData.testUser1Details,0)
-        verify(userRepository).findCompletedQuizzesByUser(testData.testUser)
+    @ParameterizedTest
+    @ValueSource(ints = [0, 1, 10, Int.MAX_VALUE])
+    fun `getCompleted for valid user calls repository`(page: Int) {
+        val pageRequest = PageRequest.of(page,10, Sort.by("completedAt").descending())
 
-        quizService.getCompleted(testData.testUser2Details,0)
-        verify(userRepository).findCompletedQuizzesByUser(testData.testUser2)
+        quizService.getCompleted(testData.testUser1Details,page)
+        verify(userRepository).findCompletedQuizzesByUser(testData.testUser, pageRequest)
+
+        quizService.getCompleted(testData.testUser2Details,page)
+        verify(userRepository).findCompletedQuizzesByUser(testData.testUser2, pageRequest)
     }
 
     @Test
     fun `getCompleted for unauthenticated throws exception`() {
-        assertThrows<AuthenticationException> { quizService.getCompleted(null, 0) }
+        assertThrows<AuthenticationException> {
+            quizService.getCompleted(null, 0)
+        }
     }
 
     /*

@@ -1,16 +1,15 @@
 package org.jenhan.engine.service
 
+import jakarta.validation.Valid
+import jakarta.validation.constraints.Min
+import org.jenhan.engine.exceptions.AuthenticationException
+import org.jenhan.engine.exceptions.NotFoundException
 import org.jenhan.engine.model.QuizCompletion
 import org.jenhan.engine.service.dtos.QuizCreationObject
 import org.jenhan.engine.service.dtos.QuizDTO
-import org.jenhan.engine.exceptions.AuthenticationException
-import org.jenhan.engine.exceptions.NotFoundException
-import org.jenhan.engine.service.dtos.SolutionFeedback
-import jakarta.validation.Valid
-import jakarta.validation.constraints.Min
 import org.jenhan.engine.service.dtos.Solution
+import org.jenhan.engine.service.dtos.SolutionFeedback
 import org.slf4j.LoggerFactory
-import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Page
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -135,8 +134,7 @@ class QuizController(private val webQuizService: WebQuizService) {
     fun getCompletedQuizzes(
         @AuthenticationPrincipal userDetails: UserDetails?,
         @RequestParam @Min(0) page: Int = 0,
-    ): ResponseEntity<PageImpl<QuizCompletion>> {
-        LOGGER.debug("Getting completed quizzes page {} for user {}", page, userDetails?.username)
+    ): ResponseEntity<Page<QuizCompletion>> {
         return ResponseEntity
             .ok()
             .contentType(MediaType.APPLICATION_JSON)

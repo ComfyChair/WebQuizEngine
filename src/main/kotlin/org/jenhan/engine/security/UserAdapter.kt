@@ -32,14 +32,14 @@ class UserAdapter(private val quizUser: QuizUser) : UserDetails {
      *
      * @return The [QuizUser]'s hashed password
      */
-    override fun getPassword(): String = requireNotNull(quizUser.pwHash)
+    override fun getPassword(): String = quizUser.pwHash
 
     /**
      * Returns the username used for authentication.
      *
      * @return The [QuizUser]'s email address
      */
-    override fun getUsername(): String = requireNotNull(quizUser.email)
+    override fun getUsername(): String = quizUser.email
 
     /**
      * Indicates whether the user's account has expired.

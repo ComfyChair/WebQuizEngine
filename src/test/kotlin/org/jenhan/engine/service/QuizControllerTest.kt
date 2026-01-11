@@ -2,14 +2,14 @@ package org.jenhan.engine.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.hamcrest.collection.IsCollectionWithSize.hasSize
-import org.jenhan.engine.TestData
+import org.jenhan.engine.TestHelper
+import org.jenhan.engine.TestHelper.Companion.toPage
 import org.jenhan.engine.exceptions.AuthenticationException
 import org.jenhan.engine.exceptions.NotFoundException
 import org.jenhan.engine.exceptions.PermissionException
 import org.jenhan.engine.model.UserRepository
 import org.jenhan.engine.security.SecurityConfig
 import org.jenhan.engine.security.UserAdapter
-import org.jenhan.engine.service.WebQuizService.Companion.toPage
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.`when`
@@ -40,7 +40,7 @@ internal class QuizControllerTest {
     private lateinit var webQuizService: WebQuizService
 
     private val mapper = ObjectMapper()
-    private val testData = TestData.getInstance()
+    private val testData = TestHelper.getInstance()
 
     /*
     GET all quizzes / single quiz

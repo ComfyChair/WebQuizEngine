@@ -143,10 +143,16 @@ class WebQuizService(
      * @return [PageImpl] of [QuizCompletion] objects, with 10 items per page
      * @throws AuthenticationException if user is not authenticated
      */
-    fun getCompleted(userDetails: UserDetails?, page: Int): PageImpl<QuizCompletion> {
+    fun getCompleted(userDetails: UserDetails?, page: Int): Page<QuizCompletion> {
         val user = getUser(userDetails)
-        val completions = userRepository.findCompletedQuizzesByUser(user)
-        return completions.toPage(page,10,Sort.by("completedAt").descending())
+        return userRepository.findCompletedQuizzesByUser(
+            user,
+            PageRequest.of(
+                page,
+                10,
+                Sort.by("completedAt").descending()
+            )
+        )
     }
 
     /**
@@ -164,22 +170,6 @@ class WebQuizService(
     companion object {
         /** Logger instance for this service */
         private val LOGGER = LoggerFactory.getLogger(WebQuizService::class.java)
-
-        /**
-         * Generic extension function that converts a List to [PageImpl].
-         *
-         * @param pageNo The number of the page to be returned
-         * @param pageSize The number of items per page
-         * @param sort The optional [Sort]
-         * @return [PageImpl] of the List item type
-         */
-        fun <T> List<T>.toPage(pageNo: Int, pageSize: Int, sort: Sort = Sort.unsorted()): PageImpl<T> {
-            return PageImpl(
-                this,
-                PageRequest.of(pageNo, pageSize, sort),
-                this.size.toLong()
-            )
-        }
 
         /**
          * Extension function that converts a QuizCreationObject to a Quiz entity.

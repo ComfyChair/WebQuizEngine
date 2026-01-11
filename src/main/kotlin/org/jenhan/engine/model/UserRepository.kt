@@ -1,5 +1,7 @@
 package org.jenhan.engine.model
 
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.CrudRepository
 import org.springframework.data.repository.PagingAndSortingRepository
@@ -21,5 +23,5 @@ interface UserRepository: PagingAndSortingRepository<QuizUser, Long>, CrudReposi
             SELECT quizUser.solvedQuizzes as solvedQuizzes
             FROM QuizUser quizUser
             """)
-    fun findCompletedQuizzesByUser(user: QuizUser): List<QuizCompletion>
+    fun findCompletedQuizzesByUser(user: QuizUser, pageable: Pageable): Page<QuizCompletion>
 }

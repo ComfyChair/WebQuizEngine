@@ -1,13 +1,13 @@
 package org.jenhan.engine.service
 
-import org.jenhan.engine.TestData
+import org.jenhan.engine.TestHelper
 import org.jenhan.engine.exceptions.QuizCreationException
 import org.jenhan.engine.service.WebQuizService.Companion.toQuiz
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
 class WebQuizServiceHelperTest {
-    val testData = TestData.getInstance()
+    val testData = TestHelper.getInstance()
 
     @Test
     @Throws(QuizCreationException::class)
