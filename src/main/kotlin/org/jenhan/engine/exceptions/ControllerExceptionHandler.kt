@@ -61,7 +61,7 @@ class ControllerExceptionHandler {
     @ExceptionHandler(
         AuthenticationException::class,
     )
-    fun handleAuthorizationException(e: AuthenticationException): ResponseEntity<CustomErrorMessage> {
+    fun handleAuthenticationException(e: AuthenticationException): ResponseEntity<CustomErrorMessage> {
         val body = CustomErrorMessage(e.message ?: "Unknown error")
         return ResponseEntity(body, HttpStatus.UNAUTHORIZED)
     }

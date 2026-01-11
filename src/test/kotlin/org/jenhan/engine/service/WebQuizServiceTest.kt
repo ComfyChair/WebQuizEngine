@@ -3,6 +3,7 @@ package org.jenhan.engine.service
 import org.jenhan.engine.TestData
 import org.jenhan.engine.exceptions.AuthenticationException
 import org.jenhan.engine.exceptions.NotFoundException
+import org.jenhan.engine.exceptions.PermissionException
 import org.jenhan.engine.model.QuizRepository
 import org.jenhan.engine.model.UserRepository
 import org.jenhan.engine.service.WebQuizService.Companion.toPage
@@ -11,7 +12,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -47,13 +47,13 @@ internal class WebQuizServiceTest {
     }
 
     /*
-    GET services tests
+    Querying quizzes and completions
      */
 
     @ParameterizedTest
     @ValueSource(ints = [-1, -5, -10, Int.MIN_VALUE])
     @Throws(NotFoundException::class)
-    fun `get quiz for inValid quiz id throws NotFoundException`(id: Int) {
+    fun `getQuiz for inValid quiz id throws NotFoundException`(id: Int) {
         assertThrows<NotFoundException> {
             quizService.getQuiz(id)
             verify(quizRepository).findById(id.toLong())
@@ -61,30 +61,25 @@ internal class WebQuizServiceTest {
     }
     @Test
     @Throws(NotFoundException::class)
-    fun `GET quizzes for valid quiz id returns quiz DTO`() {
-        assertDoesNotThrow {
-            val quiz = quizService.getQuiz(0)
-            verify(quizRepository).findById(0L)
-            assertNotNull(quiz)
-            assertEquals(testData.quiz1DTO, quiz)
-        }
-        assertDoesNotThrow {
-            val quiz = quizService.getQuiz(1)
-            verify(quizRepository).findById(1L)
-            assertNotNull(quiz)
-            assertEquals(testData.quiz2DTO, quiz)
-        }
+    fun `getQuiz for valid quiz id returns quiz DTO`() {
+        val quiz1 = quizService.getQuiz(0)
+        verify(quizRepository).findById(0L)
+        assertEquals(testData.quiz1DTO, quiz1)
+
+        val quiz2 = quizService.getQuiz(1)
+        verify(quizRepository).findById(1L)
+        assertEquals(testData.quiz2DTO, quiz2)
     }
 
     @ParameterizedTest
     @ValueSource(ints = [0, 1, 5, 10, Int.MAX_VALUE])
-    fun `GET quizzes submits corresponding PageRequest to repository`(page: Int) {
+    fun `getQuizzes submits corresponding PageRequest to repository`(page: Int) {
         quizService.getQuizzes(page)
         verify(quizRepository).findAll(PageRequest.of(page, 10))
     }
 
     @Test
-    fun `GET completed for valid user calls repository`() {
+    fun `getCompleted for valid user calls repository`() {
         quizService.getCompleted(testData.testUser1Details,0)
         verify(userRepository).findCompletedQuizzesByUser(testData.testUser)
 
@@ -93,20 +88,69 @@ internal class WebQuizServiceTest {
     }
 
     @Test
-    fun `GET completed for unauthenticated throws exception`() {
+    fun `getCompleted for unauthenticated throws exception`() {
         assertThrows<AuthenticationException> { quizService.getCompleted(null, 0) }
     }
 
     /*
-     POST services tests
+    Adding and deleting quizzes
      */
+
     @Test
-    fun `POST add quiz for unauthenticated throws exception`() {
+    fun `addQuiz for unauthenticated throws exception`() {
         assertThrows<AuthenticationException> { quizService.addQuiz(null, testData.quiz1CreateDTO) }
     }
     @Test
-    fun `POST add quiz saves quiz to repository`() {
+    fun `addQuiz saves quiz to repository`() {
         quizService.addQuiz(testData.testUser1Details, testData.quiz1CreateDTO)
         verify(quizRepository).save(testData.quiz1CreateDTO.toQuiz(null, testData.testUser))
+    }
+
+    @Test
+    fun `deleteQuiz by author deletes quiz from repository`() {
+        quizService.deleteQuiz(0, testData.testUser1Details)
+        verify(quizRepository).delete(testData.quiz1)
+    }
+
+    @Test
+    fun `deleteQuiz by another user throws PermissionException`() {
+        assertThrows<PermissionException> {
+            quizService.deleteQuiz(0, testData.testUser2Details)
+        }
+    }
+
+    @Test
+    fun `deleteQuiz by unauthenticated user throws AuthenticationException`() {
+        assertThrows<AuthenticationException> {
+            quizService.deleteQuiz(0, null)
+        }
+    }
+
+    /*
+    Solving quizzes
+     */
+    @Test
+    fun `evaluateAnswer by invalid user throws AuthenticationException`() {
+        assertThrows<AuthenticationException> {
+            quizService.evaluateAnswer(null, 0, setOf(0))
+        }
+    }
+    @Test
+    fun `evaluateAnswer with wrong answer gives success=false`() {
+        val responseEntity = quizService.evaluateAnswer(testData.testUser1Details, 0, setOf(2,0))
+        assertNotNull(responseEntity.body)
+        assertEquals(false, responseEntity.body?.success)
+    }
+    @Test
+    fun `evaluateAnswer with correct answer gives success=true`() {
+        val responseEntity = quizService.evaluateAnswer(testData.testUser1Details, 0, setOf(2))
+        assertNotNull(responseEntity.body)
+        assertEquals(true, responseEntity.body?.success)
+    }
+    @Test
+    fun `evaluateAnswer with invalid quiz id throws NotFoundException`() {
+        assertThrows<NotFoundException> {
+            quizService.evaluateAnswer(testData.testUser1Details, 2, setOf(2))
+        }
     }
 }

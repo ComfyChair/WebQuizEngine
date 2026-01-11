@@ -16,5 +16,4 @@ data class QuizDTO (
     val title: String,
     val text: String,
     val options: List<String>,
-) {
-}
+)
