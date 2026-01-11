@@ -3,6 +3,7 @@ package org.jenhan.engine.security.registration
 import org.jenhan.engine.model.QuizUser
 import org.jenhan.engine.model.UserRepository
 import org.jenhan.engine.exceptions.RegistrationException
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 
@@ -13,12 +14,12 @@ import org.springframework.stereotype.Service
  * password hashing, and persisting user data to the database.
  *
  * @property userRepository Repository for user data access and persistence
- * @property encoder Password encoder for securely hashing user passwords
+ * @property encoder Password encoder for securely hashing user passwords; defaults to BCryptPasswordEncoder
  */
 @Service
 class RegistrationService(
     private val userRepository: UserRepository,
-    private val encoder: PasswordEncoder) {
+    private val encoder: PasswordEncoder = BCryptPasswordEncoder()) {
 
     /**
      * Registers a new user account.
@@ -31,20 +32,22 @@ class RegistrationService(
      */
     fun register(registrationRequest: RegistrationRequest) {
         if (userRepository.existsByEmail(registrationRequest.email) ) throw RegistrationException("a user account for this email has already been created")
-        val user = registrationRequest.toUser()
+        val user = registrationRequest.toUser(encoder)
         userRepository.save(user)
     }
 
-    /**
-     * Converts a RegistrationRequest to a QuizUser entity.
-     *
-     * Extension function that creates a new QuizUser with a BCrypt-hashed password
-     * and the default "ROLE_USER" authority.
-     *
-     * @return QuizUser entity ready for persistence
-     */
-    private fun RegistrationRequest.toUser(): QuizUser {
-        val pwHash = encoder.encode(password)
-        return QuizUser(null, email, pwHash!!, "ROLE_USER")
+    companion object {
+        /**
+         * Converts a RegistrationRequest to a QuizUser entity.
+         *
+         * Extension function that creates a new QuizUser with a BCrypt-hashed password
+         * and the default "ROLE_USER" authority.
+         *
+         * @return QuizUser entity ready for persistence
+         */
+        fun RegistrationRequest.toUser(encoder: PasswordEncoder): QuizUser {
+            val pwHash = encoder.encode(password)
+            return QuizUser(null, email, pwHash!!, "ROLE_USER")
+        }
     }
 }
