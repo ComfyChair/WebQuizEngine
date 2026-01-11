@@ -69,7 +69,6 @@ The application follows a layered architecture:
 |--------|-----------------|------------------------|
 | POST   | `/api/register` | Register a new user    |
 
----
 
 ### Quizzes
 | Method | Endpoint               | Description                     |
@@ -79,7 +78,6 @@ The application follows a layered architecture:
 | GET    | `/api/quizzes/{id}`    | Get quiz by id                  |
 | DELETE | `/api/quizzes/{id}`    | Delete quiz (owner only)        |
 
----
 
 ### Solving Quizzes
 | Method | Endpoint                        | Description                  |
