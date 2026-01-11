@@ -1,23 +1,21 @@
 package org.jenhan.engine.service
 
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import org.hamcrest.Matchers
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.hamcrest.collection.IsCollectionWithSize.hasSize
 import org.jenhan.engine.exceptions.AuthenticationException
 import org.jenhan.engine.exceptions.NotFoundException
 import org.jenhan.engine.exceptions.PermissionException
+import org.jenhan.engine.model.QuizCompletion
 import org.jenhan.engine.model.QuizUser
 import org.jenhan.engine.model.UserRepository
 import org.jenhan.engine.security.SecurityConfig
 import org.jenhan.engine.security.UserAdapter
-import org.jenhan.engine.security.UserDetailsServiceImpl
+import org.jenhan.engine.service.WebQuizService.Companion.toPage
 import org.jenhan.engine.service.dtos.QuizCreationObject
 import org.jenhan.engine.service.dtos.QuizDTO
 import org.jenhan.engine.service.dtos.Solution
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.*
-import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
@@ -32,10 +30,9 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import java.time.LocalDateTime
 
 @WebMvcTest(QuizController::class)
 @Import(SecurityConfig::class)
@@ -50,8 +47,12 @@ internal class QuizControllerTest {
     private val quiz1CreateDTO = QuizCreationObject(QUIZ1_TITLE, QUIZ1_TEXT,QUIZ1_OPTIONS, setOf(2))
     private val quiz1 = QuizDTO(0,QUIZ1_TITLE,QUIZ1_TEXT,QUIZ1_OPTIONS)
     private val quiz2 = QuizDTO(1,QUIZ2_TITLE,QUIZ2_TEXT,QUIZ2_OPTIONS)
+
     private val quiz1SolutionCorrect = Solution(0, setOf(2))
     private val quiz1SolutionWrong = Solution(0, setOf(2, 1))
+
+    private val quiz1Completion = QuizCompletion(quiz1.id, LocalDateTime.of(2025, 1, 1, 0, 0))
+    private val quiz2Completion = QuizCompletion(quiz2.id, LocalDateTime.of(2026, 1, 1, 0, 0))
 
     private val testUser = QuizUser(0,TEST_USER_NAME,TEST_USER_PASSWORD)
 
@@ -133,7 +134,8 @@ internal class QuizControllerTest {
 
     @Test
     fun `POST new quiz accepted with mocked user`() {
-        val content = Json.encodeToString(quiz1CreateDTO).toByteArray()
+        val objectMapper = jacksonObjectMapper()
+        val content = objectMapper.writeValueAsString(quiz1CreateDTO).toByteArray()
         val postProcessor = SecurityMockMvcRequestPostProcessors
             .user(testUser.email)
             .authorities(SimpleGrantedAuthority("USER"))
@@ -153,7 +155,8 @@ internal class QuizControllerTest {
 
     @Test
     fun `POST new quiz declined without authentication`() {
-        val content = Json.encodeToString(quiz1CreateDTO).toByteArray()
+        val objectMapper = jacksonObjectMapper()
+        val content = objectMapper.writeValueAsString(quiz1CreateDTO).toByteArray()
 
         mockMvc.perform(
             post("/api/quizzes")
@@ -213,7 +216,8 @@ internal class QuizControllerTest {
 
     @Test
     fun `POST solve declined without authentication`() {
-        val content = Json.encodeToString(quiz1SolutionCorrect).toByteArray()
+        val objectMapper = jacksonObjectMapper()
+        val content = objectMapper.writeValueAsString(quiz1SolutionCorrect).toByteArray()
         mockMvc.perform(
             post("/api/quizzes/0/solve")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -225,7 +229,8 @@ internal class QuizControllerTest {
     @Test
     @WithMockUser(username = "testUser", roles = ["USER"])
     fun `POST solve with correct answer`() {
-        val content = Json.encodeToString(quiz1SolutionCorrect).toByteArray()
+        val objectMapper = jacksonObjectMapper()
+        val content = objectMapper.writeValueAsString(quiz1SolutionCorrect).toByteArray()
         mockMvc.perform(
             post("/api/quizzes/0/solve")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -237,7 +242,8 @@ internal class QuizControllerTest {
     @Test
     @WithMockUser(username = "testUser", roles = ["USER"])
     fun `POST solve with wrong answer`() {
-        val content = Json.encodeToString(quiz1SolutionWrong).toByteArray()
+        val objectMapper = jacksonObjectMapper()
+        val content = objectMapper.writeValueAsString(quiz1SolutionWrong).toByteArray()
         mockMvc.perform(
             post("/api/quizzes/0/solve")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -249,7 +255,8 @@ internal class QuizControllerTest {
     @Test
     @WithMockUser(username = "testUser", roles = ["USER"])
     fun `POST solve with invalid id is NOT FOUND`() {
-        val content = Json.encodeToString(quiz1SolutionCorrect).toByteArray()
+        val objectMapper = jacksonObjectMapper()
+        val content = objectMapper.writeValueAsString(quiz1SolutionCorrect).toByteArray()
 
         `when`(webQuizService.evaluateAnswer(
             any(UserDetails::class.java), anyInt(), anySet() ))
@@ -270,9 +277,19 @@ internal class QuizControllerTest {
     @Test
     @WithMockUser(username = "testUser", roles = ["USER"])
     fun `GET completed quizzes with valid credentials returns correct JSON`() {
+        val quizList = listOf(quiz1Completion,quiz2Completion).sortedByDescending { it.completedAt }
+        `when`(webQuizService.getCompleted(
+            any(UserDetails::class.java), anyInt()))
+            .thenReturn(quizList.toPage(0,10))
+
         mockMvc.perform(get("/api/quizzes/completed")
-            .with(csrf()))
-            .andExpect(status().isOk)
+            .with(csrf())
+        ).andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.pageable").exists())
+            .andExpect(jsonPath("$.numberOfElements").value(2))
+            .andExpect(jsonPath("$.content[0].id").value(1))
+            .andExpect(jsonPath("$.content[1].id").value(0))
     }
 
     companion object {

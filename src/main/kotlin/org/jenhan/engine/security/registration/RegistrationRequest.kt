@@ -2,7 +2,6 @@ package org.jenhan.engine.security.registration
 
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
-import kotlinx.serialization.Serializable
 
 /**
  * Data transfer object for user registration requests.
@@ -13,7 +12,6 @@ import kotlinx.serialization.Serializable
  * @property email User's email address (must match pattern: characters@characters.characters)
  * @property password User's password (minimum 5 characters required)
  */
-@Serializable
 data class RegistrationRequest(
     @field:Pattern(regexp = ".+@.+\\..+" , message = "Must be a valid email address")
     val email: String,

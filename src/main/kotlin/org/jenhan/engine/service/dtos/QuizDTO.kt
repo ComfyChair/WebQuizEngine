@@ -1,7 +1,5 @@
 package org.jenhan.engine.service.dtos
 
-import kotlinx.serialization.Serializable
-
 /**
  * Data transfer object representing a quiz for client communication.
  *
@@ -13,7 +11,6 @@ import kotlinx.serialization.Serializable
  * @property text The quiz question or description text
  * @property options List of available answer options presented to the user
  */
-@Serializable
 class QuizDTO (
     val id: Int,
     val title: String,

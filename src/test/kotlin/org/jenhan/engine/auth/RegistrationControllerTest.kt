@@ -1,21 +1,24 @@
 package org.jenhan.engine.auth
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import org.jenhan.engine.security.registration.RegistrationController
 import org.jenhan.engine.security.registration.RegistrationRequest
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.orm.jpa.AutoConfigureTestEntityManager
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class RegistrationControllerMockMvcTest {
+@AutoConfigureTestEntityManager
+class RegistrationControllerTest {
     @Autowired private lateinit var mockMvc: MockMvc
 
     @Test
@@ -24,13 +27,16 @@ class RegistrationControllerMockMvcTest {
             "someone@somewhere.com",
             "password"
         )
-        val requestAsJson = Json.encodeToString(request)
+        val objectMapper = jacksonObjectMapper()
+        val requestAsJson = objectMapper.writeValueAsString(request)
+        println("Request: $requestAsJson")
 
         mockMvc.perform(post("/api/register")
             .contentType(MediaType.APPLICATION_JSON)
             .content(requestAsJson)
             .with(csrf())
         ).andExpect(status().isOk)
+            .andExpect(content().string(RegistrationController.REGISTRATION_SUCCESSFUL))
     }
 
     @Test
@@ -46,6 +52,7 @@ class RegistrationControllerMockMvcTest {
                 .content(requestAsJson)
                 .with(csrf())
         ).andExpect(status().isBadRequest)
+            .andExpect(content().string(RegistrationController.INVALID_CREDENTIALS))
     }
 
     @Test
@@ -60,6 +67,7 @@ class RegistrationControllerMockMvcTest {
             .content(requestAsJson)
             .with(csrf())
             ).andExpect(status().isBadRequest)
+            .andExpect(content().string(RegistrationController.INVALID_CREDENTIALS))
     }
 
     @Test

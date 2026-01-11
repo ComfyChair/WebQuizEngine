@@ -2,7 +2,6 @@ package org.jenhan.engine.security.registration
 
 import jakarta.validation.Valid
 import org.slf4j.LoggerFactory
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.BindingResult
 import org.springframework.web.bind.annotation.PostMapping
@@ -44,16 +43,18 @@ class RegistrationController(
         LOGGER.info("Registration requested from ${registrationRequest.email}")
         if (result.hasErrors()) {
             LOGGER.error("Registration request is invalid")
-            return ResponseEntity.badRequest().body("Invalid email address")
+            return ResponseEntity.badRequest().body(INVALID_CREDENTIALS)
         } else {
             registrationService.register(registrationRequest)
             LOGGER.info("Registration completed successfully")
-            return ResponseEntity(HttpStatus.OK)
+            return ResponseEntity.ok(REGISTRATION_SUCCESSFUL)
         }
     }
 
     companion object {
         /** Logger instance for this controller */
         private val LOGGER = LoggerFactory.getLogger(RegistrationController::class.java)
+        const val REGISTRATION_SUCCESSFUL = "Registration successful"
+        const val INVALID_CREDENTIALS = "Invalid credentials: Email must be a valid email address and password has to contain > 4 characters."
     }
 }

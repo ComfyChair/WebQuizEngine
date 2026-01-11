@@ -43,7 +43,7 @@ class WebQuizService(
      * Retrieves a single quiz by its ID.
      *
      * @param quizId The unique identifier of the quiz
-     * @return QuizDTO containing the quiz information
+     * @return [QuizDTO] containing the quiz information
      * @throws NotFoundException if the quiz ID doesn't exist in the database
      */
     fun getQuiz(quizId: Int): QuizDTO {
@@ -56,7 +56,7 @@ class WebQuizService(
      * Retrieves a paginated list of all quizzes.
      *
      * @param page Zero-based page number
-     * @return Page of QuizDTO objects, with 10 items per page
+     * @return [Page] of [QuizDTO] objects, with 10 items per page
      */
     fun getQuizzes(page: Int): Page<QuizDTO> {
         val page: Page<Quiz> = quizzes.findAll(PageRequest.of(page, 10))
@@ -72,7 +72,7 @@ class WebQuizService(
      * @param userDetails Authentication details of the current user
      * @param quizId The ID of the quiz being answered
      * @param answerIds The user's selected answer
-     * @return ResponseEntity containing [SolutionFeedback] with success status
+     * @return [ResponseEntity] containing [SolutionFeedback] with success status
      * @throws NotFoundException if the quiz ID doesn't exist
      * @throws AuthenticationException if user is not authenticated
      */
@@ -100,7 +100,7 @@ class WebQuizService(
      *
      * @param userDetails Authentication details of the current user
      * @param quizCO Quiz creation object containing quiz details (title, text, options, answer)
-     * @return QuizDTO of the newly created quiz
+     * @return [QuizDTO] of the newly created quiz
      * @throws AuthenticationException if user is not authenticated
      */
     fun addQuiz(userDetails: UserDetails?, quizCO: QuizCreationObject) : QuizDTO {
@@ -119,7 +119,8 @@ class WebQuizService(
      * @param quizId The ID of the quiz to delete
      * @param userDetails Authentication details of the current user
      * @throws NotFoundException if the quiz ID doesn't exist
-     * @throws AuthenticationException if user is not authenticated or not the quiz author
+     * @throws AuthenticationException if user is not authenticated
+     * @throws PermissionException if user is not the quiz author
      */
     fun deleteQuiz(quizId: Int, userDetails: UserDetails?) {
         val user = getUser(userDetails)
@@ -140,12 +141,8 @@ class WebQuizService(
      */
     fun getCompleted(userDetails: UserDetails?, page: Int): PageImpl<QuizCompletion> {
         val user = getUser(userDetails)
-        val quizzes = userRepository.findCompletedQuizzesByUser(user)
-        return PageImpl( quizzes, PageRequest.of(
-            page,
-            10,
-            Sort.by("completedAt").descending()
-        ), quizzes.size.toLong())
+        val completions = userRepository.findCompletedQuizzesByUser(user)
+        return completions.toPage(page,10,Sort.by("completedAt").descending())
     }
 
     /**
@@ -164,6 +161,21 @@ class WebQuizService(
         /** Logger instance for this service */
         private val LOGGER = LoggerFactory.getLogger(WebQuizService::class.java)
 
+        /**
+         * Generic extension function that converts a List to [PageImpl].
+         *
+         * @param pageNo The number of the page to be returned
+         * @param pageSize The number of items per page
+         * @param sort The optional [Sort]
+         * @return [PageImpl] of the List item type
+         */
+        fun <T> List<T>.toPage(pageNo: Int, pageSize: Int, sort: Sort = Sort.unsorted()): PageImpl<T> {
+            return PageImpl(
+                this,
+                PageRequest.of(pageNo, pageSize, sort),
+                this.size.toLong()
+            )
+        }
 
         /**
          * Extension function that converts a QuizCreationObject to a Quiz entity.
