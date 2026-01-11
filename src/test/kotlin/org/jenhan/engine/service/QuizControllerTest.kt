@@ -2,18 +2,21 @@ package org.jenhan.engine.service
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.hamcrest.collection.IsCollectionWithSize.hasSize
+import org.jenhan.engine.TestData.Companion.quiz1DTO
+import org.jenhan.engine.TestData.Companion.quiz1Completion
+import org.jenhan.engine.TestData.Companion.quiz1CreateDTO
+import org.jenhan.engine.TestData.Companion.quiz1SolutionCorrect
+import org.jenhan.engine.TestData.Companion.quiz1SolutionWrong
+import org.jenhan.engine.TestData.Companion.quiz2DTO
+import org.jenhan.engine.TestData.Companion.quiz2Completion
+import org.jenhan.engine.TestData.Companion.testUser
 import org.jenhan.engine.exceptions.AuthenticationException
 import org.jenhan.engine.exceptions.NotFoundException
 import org.jenhan.engine.exceptions.PermissionException
-import org.jenhan.engine.model.QuizCompletion
-import org.jenhan.engine.model.QuizUser
 import org.jenhan.engine.model.UserRepository
 import org.jenhan.engine.security.SecurityConfig
 import org.jenhan.engine.security.UserAdapter
 import org.jenhan.engine.service.WebQuizService.Companion.toPage
-import org.jenhan.engine.service.dtos.QuizCreationObject
-import org.jenhan.engine.service.dtos.QuizDTO
-import org.jenhan.engine.service.dtos.Solution
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.`when`
@@ -32,7 +35,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
-import java.time.LocalDateTime
 
 @WebMvcTest(QuizController::class)
 @Import(SecurityConfig::class)
@@ -44,17 +46,6 @@ internal class QuizControllerTest {
     @field:MockitoBean
     private lateinit var webQuizService: WebQuizService
 
-    private val quiz1CreateDTO = QuizCreationObject(QUIZ1_TITLE, QUIZ1_TEXT,QUIZ1_OPTIONS, setOf(2))
-    private val quiz1 = QuizDTO(0,QUIZ1_TITLE,QUIZ1_TEXT,QUIZ1_OPTIONS)
-    private val quiz2 = QuizDTO(1,QUIZ2_TITLE,QUIZ2_TEXT,QUIZ2_OPTIONS)
-
-    private val quiz1SolutionCorrect = Solution(0, setOf(2))
-    private val quiz1SolutionWrong = Solution(0, setOf(2, 1))
-
-    private val quiz1Completion = QuizCompletion(quiz1.id, LocalDateTime.of(2025, 1, 1, 0, 0))
-    private val quiz2Completion = QuizCompletion(quiz2.id, LocalDateTime.of(2026, 1, 1, 0, 0))
-
-    private val testUser = QuizUser(0,TEST_USER_NAME,TEST_USER_PASSWORD)
 
     /*
     GET all quizzes / single quiz
@@ -69,7 +60,7 @@ internal class QuizControllerTest {
     @WithMockUser(username = "testUser", roles = ["USER"])
     fun `GET all quizzes returns correct list with MockUser`() {
         `when`(webQuizService.getQuizzes(0))
-            .thenReturn(PageImpl(listOf(quiz1, quiz2), PageRequest.of(0, 10), 2))
+            .thenReturn(PageImpl(listOf(quiz1DTO, quiz2DTO), PageRequest.of(0, 10), 2))
 
         mockMvc.perform(
             get("/api/quizzes?page=0"))
@@ -77,12 +68,12 @@ internal class QuizControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.content").isArray)
             .andExpect(jsonPath("$.content[0].id").value(0))
-            .andExpect(jsonPath("$.content[0].title").value(quiz1.title))
-            .andExpect(jsonPath("$.content[0].text").value(quiz1.text))
+            .andExpect(jsonPath("$.content[0].title").value(quiz1DTO.title))
+            .andExpect(jsonPath("$.content[0].text").value(quiz1DTO.text))
             .andExpect(jsonPath("$.content[0].options", hasSize<Any>(4)))
             .andExpect(jsonPath("$.content[1].id").value(1))
-            .andExpect(jsonPath("$.content[1].title").value(quiz2.title))
-            .andExpect(jsonPath("$.content[1].text").value(quiz2.text))
+            .andExpect(jsonPath("$.content[1].title").value(quiz2DTO.title))
+            .andExpect(jsonPath("$.content[1].text").value(quiz2DTO.text))
             .andExpect(jsonPath("$.content[1].options", hasSize<Any>(4)))
     }
 
@@ -96,7 +87,6 @@ internal class QuizControllerTest {
 
     @Test
     fun `GET quiz by id denied without authentication`() {
-
         mockMvc.perform(get("/api/quizzes/0"))
             .andExpect(status().isUnauthorized)
     }
@@ -104,15 +94,15 @@ internal class QuizControllerTest {
     @Test
     @WithMockUser(username = "testUser", roles = ["USER"])
     fun `GET quiz by id returns quiz DTO with MockUser`() {
-        `when`(webQuizService.getQuiz(0)).thenReturn(quiz1)
+        `when`(webQuizService.getQuiz(0)).thenReturn(quiz1DTO)
 
         mockMvc.perform(
             get("/api/quizzes/0"))
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.id").value(0))
-            .andExpect(jsonPath("$.title").value(quiz1.title))
-            .andExpect(jsonPath("$.text").value(quiz1.text))
+            .andExpect(jsonPath("$.title").value(quiz1DTO.title))
+            .andExpect(jsonPath("$.text").value(quiz1DTO.text))
             .andExpect(jsonPath("$.options", hasSize<Any>(4)))
             .andExpect(jsonPath("$.correctOptions").doesNotExist())
             .andExpect(jsonPath("$.answer").doesNotExist())
@@ -141,7 +131,7 @@ internal class QuizControllerTest {
             .authorities(SimpleGrantedAuthority("USER"))
         val userDetails = UserAdapter(testUser)
         `when`(webQuizService.addQuiz(userDetails, quiz1CreateDTO))
-            .thenReturn(quiz1)
+            .thenReturn(quiz1DTO)
 
         mockMvc.perform(
             post("/api/quizzes")
@@ -292,15 +282,15 @@ internal class QuizControllerTest {
             .andExpect(jsonPath("$.content[1].id").value(0))
     }
 
-    companion object {
-        const val TEST_USER_NAME = "testUser"
-        const val TEST_USER_PASSWORD = "password"
+    @Test
+    fun `GET completed quizzes without credentials is UNAUTHORIZED`() {
+        val quizList = listOf(quiz1Completion,quiz2Completion).sortedByDescending { it.completedAt }
+        `when`(webQuizService.getCompleted(
+            any(UserDetails::class.java), anyInt()))
+            .thenReturn(quizList.toPage(0,10))
 
-        const val QUIZ1_TITLE = "The Java Logo"
-        const val QUIZ1_TEXT = "What is depicted on the Java logo?"
-        val QUIZ1_OPTIONS = listOf("Robot", "Tea leaf", "Cup of coffee", "Bug")
-        const val QUIZ2_TITLE = "The Ultimate Question"
-        const val QUIZ2_TEXT = "What is the answer to the Ultimate Question?"
-        val QUIZ2_OPTIONS = listOf("Everything goes right","42","2+2=4","11011100")
+        mockMvc.perform(get("/api/quizzes/completed")
+            .with(csrf())
+        ).andExpect(status().isUnauthorized)
     }
 }

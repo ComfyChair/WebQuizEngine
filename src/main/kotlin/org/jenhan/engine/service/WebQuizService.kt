@@ -47,8 +47,10 @@ class WebQuizService(
      * @throws NotFoundException if the quiz ID doesn't exist in the database
      */
     fun getQuiz(quizId: Int): QuizDTO {
-        return quizzes.findById(quizId.toLong())
-            .getOrNull()?.toDTO() ?: throw NotFoundException("Index $quizId out of bounds: 0..${quizzes.count() - 1}")
+        val optionalQuiz = quizzes.findById(quizId.toLong())
+        val quiz = optionalQuiz.getOrNull()
+            ?: throw NotFoundException("Quiz index $quizId not found")
+        return quiz.toDTO()
     }
 
 
@@ -58,7 +60,7 @@ class WebQuizService(
      * @param page Zero-based page number
      * @return [Page] of [QuizDTO] objects, with 10 items per page
      */
-    fun getQuizzes(page: Int): Page<QuizDTO> {
+    fun getQuizzes(page: Int = 0): Page<QuizDTO> {
         val page: Page<Quiz> = quizzes.findAll(PageRequest.of(page, 10))
         return page.map { it.toDTO() }
     }
@@ -105,7 +107,7 @@ class WebQuizService(
      */
     fun addQuiz(userDetails: UserDetails?, quizCO: QuizCreationObject) : QuizDTO {
         val user = getUser(userDetails)
-        val newQuiz = quizCO.toQuiz(user)
+        val newQuiz = quizCO.toQuiz(id = null, author = user) // id generation is handled by persistence layer
         quizzes.save(newQuiz)
         LOGGER.debug("Added quiz with id {} to quizzes: {}", newQuiz.id, quizzes)
         return newQuiz.toDTO()
@@ -184,9 +186,9 @@ class WebQuizService(
          * @return [Quiz] entity with null ID (to be assigned by database upon persistence)
          * @throws QuizCreationException if [QuizCreationObject.answer] index is out of [QuizCreationObject.options]' bounds
          */
-        private fun QuizCreationObject.toQuiz(author: QuizUser): Quiz {
+        fun QuizCreationObject.toQuiz(id: Long?, author: QuizUser): Quiz {
             if (answer.any { it !in 0..<options.size } ) throw QuizCreationException("answer indices must correspond to valid option indices")
-            return Quiz(null, author, title, text, options, answer)
+            return Quiz(id, author, title, text, options, answer)
         }
     }
 }
