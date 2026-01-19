@@ -33,7 +33,7 @@ class SecurityConfig(private val userRepository: UserRepository) {
                 .requestMatchers("/api/quizzes/**").authenticated()
                 .requestMatchers("/api/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/actuator/shutdown").permitAll()
-                .anyRequest().permitAll()
+                .anyRequest().denyAll()
             }
             .userDetailsService(UserDetailsServiceImpl(userRepository))
             .httpBasic(Customizer.withDefaults())

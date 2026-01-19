@@ -31,7 +31,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 
 @WebMvcTest(QuizController::class)
 @Import(SecurityConfig::class)
-internal class QuizControllerTest {
+internal class QuizControllerUnitTest {
     @field:Autowired
     private lateinit var mockMvc: MockMvc
     @field:MockitoBean
