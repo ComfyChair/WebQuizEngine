@@ -10,6 +10,7 @@ import org.jenhan.engine.exceptions.PermissionException
 import org.jenhan.engine.model.UserRepository
 import org.jenhan.engine.security.SecurityConfig
 import org.jenhan.engine.security.UserAdapter
+import org.jenhan.engine.security.UserDetailsServiceImpl
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.`when`
@@ -35,7 +36,7 @@ internal class QuizControllerUnitTest {
     @field:Autowired
     private lateinit var mockMvc: MockMvc
     @field:MockitoBean
-    private lateinit var userRepository: UserRepository
+    private lateinit var userDetailsServiceImpl: UserDetailsServiceImpl
     @field:MockitoBean
     private lateinit var webQuizService: WebQuizService
 

@@ -19,10 +19,10 @@ import org.springframework.security.web.SecurityFilterChain
  * - Request authorization rules
  * - default CSRF protection (disable for testing with Postman or curl)
  *
- * @property userRepository Repository for loading user details during authentication
+ * @property userDetailsServiceImpl UserDetailsServiceImpl for loading user details during authentication
  */
 @Configuration
-class SecurityConfig(private val userRepository: UserRepository) {
+class SecurityConfig(private val userDetailsServiceImpl: UserDetailsServiceImpl) {
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
 
@@ -35,7 +35,7 @@ class SecurityConfig(private val userRepository: UserRepository) {
                 .requestMatchers(HttpMethod.POST, "/actuator/shutdown").permitAll()
                 .anyRequest().denyAll()
             }
-            .userDetailsService(UserDetailsServiceImpl(userRepository))
+            .userDetailsService(userDetailsServiceImpl)
             .httpBasic(Customizer.withDefaults())
             .csrf { it.disable() } // enable for production
             .build()

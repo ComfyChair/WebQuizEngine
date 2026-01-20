@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.userdetails.UserDetails
+import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import kotlin.jvm.optionals.getOrNull
@@ -75,7 +76,7 @@ class WebQuizService(
      * @throws AuthenticationException if user is not authenticated
      */
     fun evaluateAnswer(userDetails: UserDetails?, quizId: Int, answerIds: Set<Int>): ResponseEntity<SolutionFeedback> {
-        val user = getUser(userDetails)
+        val user = getUser(userDetails) ?: throw UsernameNotFoundException("User not found")
         val quiz = quizzes.findById(quizId.toLong()).getOrNull() ?: throw NotFoundException("id does not correspond to a quiz in the database")
 
         LOGGER.debug("Evaluating answer {} for quiz with correct option of {}", answerIds, quiz.correctOptions)
@@ -102,7 +103,7 @@ class WebQuizService(
      * @throws AuthenticationException if user is not authenticated
      */
     fun addQuiz(userDetails: UserDetails?, quizCO: QuizCreationObject) : QuizDTO {
-        val user = getUser(userDetails)
+        val user = getUser(userDetails) ?: throw UsernameNotFoundException("User not found")
         val newQuiz = quizCO.toQuiz(id = null, author = user) // id generation is handled by persistence layer
         quizzes.save(newQuiz)
         LOGGER.debug("Added quiz with id {} to quizzes", newQuiz.id)
@@ -121,7 +122,7 @@ class WebQuizService(
      * @throws PermissionException if user is not the quiz author
      */
     fun deleteQuiz(quizId: Int, userDetails: UserDetails?) {
-        val user = getUser(userDetails)
+        val user = getUser(userDetails) ?: throw UsernameNotFoundException("User not found")
         val quiz = quizzes.findById(quizId.toLong()).orElseThrow { NotFoundException("quiz with id $quizId does not exist") }
         if (user != quiz.author) throw PermissionException("user is not the author of this quiz and thus not allowed to delete it")
         quizzes.delete(quiz)
@@ -138,7 +139,7 @@ class WebQuizService(
      * @throws AuthenticationException if user is not authenticated
      */
     fun getCompleted(userDetails: UserDetails?, page: Int): Page<QuizCompletion> {
-        val user = getUser(userDetails)
+        val user = getUser(userDetails) ?: throw UsernameNotFoundException("User not found")
         return userRepository.findCompletedQuizzesByUser(
             user,
             PageRequest.of(
@@ -156,9 +157,9 @@ class WebQuizService(
      * @return [QuizUser] entity of the authenticated user
      * @throws AuthenticationException if userDetails is null (user not authenticated)
      */
-    private fun getUser(userDetails: UserDetails?): QuizUser {
-        if (userDetails == null) throw AuthenticationException("not authenticated")
-        return userRepository.findByEmail(userDetails.username)!!
+    private fun getUser(userDetails: UserDetails?): QuizUser? {
+        if (userDetails == null) throw AuthenticationException("missing credentials")
+        return userRepository.findByEmail(userDetails.username)
     }
 
     companion object {
