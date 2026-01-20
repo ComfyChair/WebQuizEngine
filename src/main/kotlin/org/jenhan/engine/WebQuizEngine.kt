@@ -2,6 +2,7 @@ package org.jenhan.engine
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
+import org.springframework.data.web.config.EnableSpringDataWebSupport
 
 /**
  * Main application class for the Web Quiz Engine.
@@ -10,6 +11,7 @@ import org.springframework.boot.runApplication
  * and solving quizzes with user authentication and completion tracking.
  */
 @SpringBootApplication
+@EnableSpringDataWebSupport(pageSerializationMode = EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO)
 class WebQuizEngine
 
 

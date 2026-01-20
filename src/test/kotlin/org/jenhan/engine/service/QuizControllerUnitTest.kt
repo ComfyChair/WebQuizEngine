@@ -267,8 +267,9 @@ internal class QuizControllerUnitTest {
             .with(csrf())
         ).andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.pageable").exists())
-            .andExpect(jsonPath("$.numberOfElements").value(2))
+            .andExpect(jsonPath("$.page").exists())
+            .andExpect(jsonPath("$.content").isArray)
+            .andExpect(jsonPath("$.content.size()").value(2))
             .andExpect(jsonPath("$.content[0].id").value(1))
             .andExpect(jsonPath("$.content[1].id").value(0))
     }

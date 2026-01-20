@@ -84,7 +84,7 @@ internal class WebQuizServiceTest {
     @ParameterizedTest
     @ValueSource(ints = [0, 1, 10, Int.MAX_VALUE])
     fun `getCompleted for valid user calls repository`(page: Int) {
-        val pageRequest = PageRequest.of(page,10, Sort.by("completedAt").descending())
+        val pageRequest = PageRequest.of(page,10, Sort.Direction.DESC, "solved")
 
         quizService.getCompleted(testData.testUser1Details,page)
         verify(userRepository).findCompletedQuizzesByUser(testData.testUser, pageRequest)

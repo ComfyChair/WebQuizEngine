@@ -3,6 +3,7 @@ package org.jenhan.engine.exceptions
 import jakarta.validation.ConstraintViolationException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 
@@ -43,7 +44,8 @@ class ControllerExceptionHandler {
     @ExceptionHandler(
         ConstraintViolationException::class,
         QuizCreationException::class,
-        RegistrationException::class
+        RegistrationException::class,
+        HttpMessageNotReadableException::class,
     )
     fun handleBadRequestException(e: RuntimeException): ResponseEntity<CustomErrorMessage> {
         val body = CustomErrorMessage(e.message ?: "Unknown error")

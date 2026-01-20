@@ -20,7 +20,7 @@ interface UserRepository: PagingAndSortingRepository<QuizUser, Long>, CrudReposi
     fun existsByEmail(email: String): Boolean
 
     @Query("""
-            SELECT quizUser.solvedQuizzes as solvedQuizzes
+            SELECT quizUser.solvedQuizzes as solved
             FROM QuizUser quizUser
             """)
     fun findCompletedQuizzesByUser(user: QuizUser, pageable: Pageable): Page<QuizCompletion>

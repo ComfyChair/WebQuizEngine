@@ -4,14 +4,10 @@ import org.jenhan.engine.exceptions.AuthenticationException
 import org.jenhan.engine.exceptions.NotFoundException
 import org.jenhan.engine.exceptions.PermissionException
 import org.jenhan.engine.exceptions.QuizCreationException
-import org.jenhan.engine.model.Quiz
-import org.jenhan.engine.model.QuizCompletion
-import org.jenhan.engine.model.QuizRepository
-import org.jenhan.engine.model.QuizUser
-import org.jenhan.engine.model.UserRepository
-import org.jenhan.engine.service.dtos.SolutionFeedback
+import org.jenhan.engine.model.*
 import org.jenhan.engine.service.dtos.QuizCreationObject
 import org.jenhan.engine.service.dtos.QuizDTO
+import org.jenhan.engine.service.dtos.SolutionFeedback
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Page
@@ -108,9 +104,7 @@ class WebQuizService(
     fun addQuiz(userDetails: UserDetails?, quizCO: QuizCreationObject) : QuizDTO {
         val user = getUser(userDetails)
         val newQuiz = quizCO.toQuiz(id = null, author = user) // id generation is handled by persistence layer
-        println("So far, so good")
         quizzes.save(newQuiz)
-        println("Even better")
         LOGGER.debug("Added quiz with id {} to quizzes", newQuiz.id)
         return newQuiz.toDTO()
     }
@@ -150,7 +144,7 @@ class WebQuizService(
             PageRequest.of(
                 page,
                 10,
-                Sort.by("completedAt").descending()
+                Sort.Direction.DESC, "solved"
             )
         )
     }

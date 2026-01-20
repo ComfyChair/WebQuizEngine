@@ -56,7 +56,7 @@ internal class QuizControllerIntegrationTest {
 
         `when`(userRepository
                 .findCompletedQuizzesByUser(testData.testUser, PageRequest.of(0,10,
-                    Sort.by("completedAt").descending()
+                    Sort.Direction.DESC, "solved"
                 ))
         ).thenReturn(quizCompletions.toPage(0, 10))
     }
@@ -270,8 +270,8 @@ internal class QuizControllerIntegrationTest {
             .with(csrf())
         ).andExpect(MockMvcResultMatchers.status().isOk)
             .andExpect(MockMvcResultMatchers.content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.pageable").exists())
-            .andExpect(MockMvcResultMatchers.jsonPath("$.numberOfElements").value(2))
+            .andExpect(MockMvcResultMatchers.jsonPath("$.content").isArray)
+            .andExpect(MockMvcResultMatchers.jsonPath("$.content.size()").value(2))
             .andExpect(MockMvcResultMatchers.jsonPath("$.content[0].id").value(1))
             .andExpect(MockMvcResultMatchers.jsonPath("$.content[1].id").value(0))
     }
