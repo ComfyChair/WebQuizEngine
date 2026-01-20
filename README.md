@@ -104,11 +104,19 @@ curl -X POST http://localhost:8889/api/quizzes \\ \
 "answer": [1]
 }'
 
+### Get all Quizzes
+curl -X GET http://localhost:8889/api/quizzes \\ \
+-u user@example.com:secret
+
 ### Solve Quiz
 curl -X POST http://localhost:8889/api/quizzes/1/solve \\ \
 -u user@example.com:secret \\ \
 -H "Content-Type: application/json" \\  \
 -d '{"answer":[1]}'
+
+### GET completed Quizzes
+curl -X GET http://localhost:8889/api/quizzes/completed \\ \
+-u user@example.com:secret
 
 ### DELETE Quiz
 curl -X DELETE http://localhost:8889/api/quizzes/1 \\ \
